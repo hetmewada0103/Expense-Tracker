@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block title %}Budget - Expense Tracker{% endblock %}
+
+{% block content %}
+<!-- Budget Page: Set monthly budget and view reminders when budget is about to exceed -->
+{% include 'nav_menu.html' %}
+
+<div class="container mt-4">
+    <h2>Budget Management</h2>
+    
+    <!-- Current Month Budget Status: Shows budget amount, spent amount, remaining, and warnings when approaching/exceeding budget -->
+    <div class="card mt-4 mb-4">
+        <div class="card-body">
+            <h5 class="card-title">Current Month Budget ({{ current_month }}/{{ current_year }})</h5>
+            {% if budget %}
+                <p><strong>Budget Amount:</strong> {{ "%.2f"|format(budget.amount) }}</p>
+                <p><strong>Amount Spent:</strong> {{ "%.2f"|format(spent) }}</p>
+                <p><strong>Remaining:</strong> {{ "%.2f"|format(budget.amount - spent) }}</p>
+                {% set percentage = (spent / budget.amount * 100) if budget.amount > 0 else 0 %}
+                <div class="progress mt-3">
+                    <div class="progress-bar {% if percentage >= 90 %}bg-danger{% elif percentage >= 75 %}bg-warning{% else %}bg-success{% endif %}" 
+                         role="progressbar" style="width: {{ percentage }}%">
+                        {{ "%.1f"|format(percentage) }}%
+                    </div>
+                </div>
+                {% if percentage >= 90 %}
+                    <div class="alert alert-danger mt-3">
+                        <strong>Warning!</strong> You have exceeded 90% of your budget for this month.
+                    </div>
+                {% elif percentage >= 75 %}
+                    <div class="alert alert-warning mt-3">
+                        <strong>Caution!</strong> You have used 75% of your budget. Be careful with your spending.
+                    </div>
+                {% endif %}
+            {% else %}
+                <p class="text-muted">No budget set for this month. Set one below.</p>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Set Budget Form: Form to set or update monthly budget -->
+    <div class="card">
+        <div class="card-body">
+            <h5 class="card-title">Set Monthly Budget</h5>
+            <form id="budgetForm">
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label for="month" class="form-label">Month</label>
+                        <select class="form-select" id="month" required>
+                            {% for m in range(1, 13) %}
+                            <option value="{{ m }}" {% if m == current_month %}selected{% endif %}>{{ m }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="year" class="form-label">Year</label>
+                        <input type="number" class="form-control" id="year" value="{{ current_year }}" min="2020" max="2100" required>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="amount" class="form-label">Budget Amount</label>
+                        <input type="number" class="form-control" id="amount" step="0.01" min="0" required>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary">Set Budget</button>
+            </form>
+            <div id="budgetMessage" class="alert d-none mt-3"></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('budgetForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const data = {
+        month: parseInt(document.getElementById('month').value),
+        year: parseInt(document.getElementById('year').value),
+        amount: parseFloat(document.getElementById('amount').value)
+    };
+    
+    const response = await fetch('/budget', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(data)
+    });
+    
+    const result = await response.json();
+    const messageDiv = document.getElementById('budgetMessage');
+    
+    if (result.success) {
+        messageDiv.className = 'alert alert-success';
+        messageDiv.textContent = result.message;
+        messageDiv.classList.remove('d-none');
+        setTimeout(() => location.reload(), 1000);
+    } else {
+        messageDiv.className = 'alert alert-danger';
+        messageDiv.textContent = result.message || 'Error setting budget';
+        messageDiv.classList.remove('d-none');
+    }
+});
+</script>
+{% endblock %}

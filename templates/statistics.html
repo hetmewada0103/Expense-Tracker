@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block title %}Statistics - Expense Tracker{% endblock %}
+
+{% block content %}
+<!-- Statistics Page: View expense data by graphs (date, monthly, yearly) using matplotlib with export functionality (PDF, JPG) -->
+{% include 'nav_menu.html' %}
+
+<div class="container mt-4">
+    <h2>Statistics</h2>
+    
+    <!-- Period Selection: Choose between daily, monthly, or yearly statistics -->
+    <div class="card mt-4 mb-4">
+        <div class="card-body">
+            <h5 class="card-title">Select Period</h5>
+            <div class="btn-group" role="group">
+                <input type="radio" class="btn-check" name="period" id="daily" value="daily" autocomplete="off">
+                <label class="btn btn-outline-primary" for="daily">Daily (Last 7 Days)</label>
+                
+                <input type="radio" class="btn-check" name="period" id="monthly" value="monthly" autocomplete="off" checked>
+                <label class="btn btn-outline-primary" for="monthly">Monthly (Last 30 Days)</label>
+                
+                <input type="radio" class="btn-check" name="period" id="yearly" value="yearly" autocomplete="off">
+                <label class="btn btn-outline-primary" for="yearly">Yearly (Last 365 Days)</label>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Chart Display: Matplotlib-generated expense chart based on selected period -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">Expense Chart</h5>
+            <div class="text-center">
+                <img id="expenseChart" src="{{ url_for('expense_chart', period='monthly') }}" alt="Expense Chart" class="img-fluid">
+            </div>
+        </div>
+    </div>
+    
+    <!-- Export Options: Export statistics as PDF or JPG format -->
+    <div class="card">
+        <div class="card-body">
+            <h5 class="card-title">Export Data</h5>
+            <p>Export your expense statistics as PDF or JPG format.</p>
+            <div class="btn-group" role="group">
+                <button type="button" class="btn btn-danger" onclick="exportData('pdf')">Export as PDF</button>
+                <button type="button" class="btn btn-warning" onclick="exportData('jpg')">Export as JPG</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Update chart when period changes
+document.querySelectorAll('input[name="period"]').forEach(radio => {
+    radio.addEventListener('change', function() {
+        const period = this.value;
+        document.getElementById('expenseChart').src = `/api/expense_chart?period=${period}`;
+    });
+});
+
+// Export function
+function exportData(format) {
+    const period = document.querySelector('input[name="period"]:checked').value;
+    window.location.href = `/export_statistics?format=${format}&period=${period}`;
+}
+</script>
+{% endblock %}

@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block title %}Profile - Expense Tracker{% endblock %}
+
+{% block content %}
+<!-- Profile Page: View and edit user details (username, email, phone, currency) -->
+{% include 'nav_menu.html' %}
+
+<div class="container mt-4">
+    <h2>Profile</h2>
+    <div class="card mt-4">
+        <div class="card-body">
+            <form id="profileForm">
+                <div class="mb-3">
+                    <label for="username" class="form-label">Username</label>
+                    <input type="text" class="form-control" id="username" value="{{ user.username }}" required>
+                </div>
+                <div class="mb-3">
+                    <label for="email" class="form-label">Email</label>
+                    <input type="email" class="form-control" id="email" value="{{ user.email }}" required>
+                </div>
+                <div class="mb-3">
+                    <label for="phone" class="form-label">Phone Number</label>
+                    <input type="tel" class="form-control" id="phone" value="{{ user.phone }}" required>
+                </div>
+                <div class="mb-3">
+                    <label for="currency" class="form-label">Currency</label>
+                    <select class="form-select" id="currency" required>
+                        <option value="USD" {% if user.currency == 'USD' %}selected{% endif %}>USD ($)</option>
+                        <option value="EUR" {% if user.currency == 'EUR' %}selected{% endif %}>EUR (€)</option>
+                        <option value="GBP" {% if user.currency == 'GBP' %}selected{% endif %}>GBP (£)</option>
+                        <option value="INR" {% if user.currency == 'INR' %}selected{% endif %}>INR (₹)</option>
+                        <option value="JPY" {% if user.currency == 'JPY' %}selected{% endif %}>JPY (¥)</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary">Update Profile</button>
+            </form>
+            <div id="profileMessage" class="alert d-none mt-3"></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('profileForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const data = {
+        username: document.getElementById('username').value,
+        email: document.getElementById('email').value,
+        phone: document.getElementById('phone').value,
+        currency: document.getElementById('currency').value
+    };
+    
+    const response = await fetch('/profile', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(data)
+    });
+    
+    const result = await response.json();
+    const messageDiv = document.getElementById('profileMessage');
+    
+    if (result.success !== false) {
+        messageDiv.className = 'alert alert-success';
+        messageDiv.textContent = 'Profile updated successfully';
+        messageDiv.classList.remove('d-none');
+    } else {
+        messageDiv.className = 'alert alert-danger';
+        messageDiv.textContent = result.message || 'Error updating profile';
+        messageDiv.classList.remove('d-none');
+    }
+});
+</script>
+{% endblock %}

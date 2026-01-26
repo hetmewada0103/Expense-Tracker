@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block title %}Login - Expense Tracker{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card">
+        <h2 class="text-center mb-4">Login</h2>
+        <form id="loginForm">
+            <div class="mb-3">
+                <label for="username" class="form-label">Username</label>
+                <input type="text" class="form-control" id="username" name="username" required>
+                <div class="invalid-feedback"></div>
+            </div>
+            <div class="mb-3">
+                <label for="password" class="form-label">Password</label>
+                <input type="password" class="form-control" id="password" name="password" required>
+                <div class="invalid-feedback"></div>
+            </div>
+            <button type="submit" class="btn btn-primary w-100 mb-3">Login</button>
+        </form>
+        <p class="text-center mt-3">
+            Don't have an account? <a href="{{ url_for('signup') }}">Sign up</a>
+        </p>
+        <div id="loginMessage" class="alert d-none"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const formData = {
+        username: document.getElementById('username').value,
+        password: document.getElementById('password').value
+    };
+    
+    const response = await fetch('/login', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(formData)
+    });
+    
+    const data = await response.json();
+    const messageDiv = document.getElementById('loginMessage');
+    
+    if (data.success) {
+        messageDiv.className = 'alert alert-success';
+        messageDiv.textContent = data.message;
+        messageDiv.classList.remove('d-none');
+        setTimeout(() => window.location.href = '/home', 1000);
+    } else {
+        messageDiv.className = 'alert alert-danger';
+        messageDiv.textContent = data.message;
+        messageDiv.classList.remove('d-none');
+    }
+});
+</script>
+{% endblock %}

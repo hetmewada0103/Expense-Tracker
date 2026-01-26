@@ -1,0 +1,57 @@
+<!-- Navigation Icon Button (Top Right): Hamburger menu icon that shows navigation options when clicked -->
+<div class="nav-icon-container">
+    <button class="nav-icon-btn" id="navIconBtn" type="button">
+        <i class="bi bi-list"></i>
+    </button>
+    <!-- Navigation Menu Dropdown -->
+    <div class="nav-menu" id="navMenu">
+        <div class="nav-menu-header">
+            <h5>Menu</h5>
+            <button type="button" class="btn-close-nav" id="closeNavBtn">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+        <ul class="nav-menu-list">
+            <li><a href="{{ url_for('home') }}" class="nav-menu-item {% if request.endpoint == 'home' %}active{% endif %}"><i class="bi bi-house-door"></i> Home</a></li>
+            <li><a href="{{ url_for('profile') }}" class="nav-menu-item {% if request.endpoint == 'profile' %}active{% endif %}"><i class="bi bi-person"></i> Profile</a></li>
+            <li><a href="{{ url_for('all_records') }}" class="nav-menu-item {% if request.endpoint == 'all_records' %}active{% endif %}"><i class="bi bi-list-ul"></i> All Records</a></li>
+            <li><a href="{{ url_for('statistics') }}" class="nav-menu-item {% if request.endpoint == 'statistics' %}active{% endif %}"><i class="bi bi-bar-chart"></i> Statistics</a></li>
+            <li><a href="{{ url_for('planned_payments') }}" class="nav-menu-item {% if request.endpoint == 'planned_payments' %}active{% endif %}"><i class="bi bi-calendar-check"></i> Planned Payments</a></li>
+            <li><a href="{{ url_for('budget') }}" class="nav-menu-item {% if request.endpoint == 'budget' %}active{% endif %}"><i class="bi bi-wallet2"></i> Budget</a></li>
+            <li><a href="{{ url_for('settings') }}" class="nav-menu-item {% if request.endpoint == 'settings' %}active{% endif %}"><i class="bi bi-gear"></i> Settings</a></li>
+            <li><a href="{{ url_for('logout') }}" class="nav-menu-item"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
+        </ul>
+    </div>
+    <!-- Overlay to close menu when clicking outside -->
+    <div class="nav-overlay" id="navOverlay"></div>
+</div>
+
+<script>
+// Navigation menu toggle (reusable script)
+(function() {
+    const navIconBtn = document.getElementById('navIconBtn');
+    const navMenu = document.getElementById('navMenu');
+    const closeNavBtn = document.getElementById('closeNavBtn');
+    const navOverlay = document.getElementById('navOverlay');
+    
+    if (navIconBtn) {
+        navIconBtn.addEventListener('click', function() {
+            navMenu.classList.add('show');
+            navOverlay.classList.add('show');
+        });
+    }
+    
+    function closeNavMenu() {
+        navMenu.classList.remove('show');
+        navOverlay.classList.remove('show');
+    }
+    
+    if (closeNavBtn) {
+        closeNavBtn.addEventListener('click', closeNavMenu);
+    }
+    
+    if (navOverlay) {
+        navOverlay.addEventListener('click', closeNavMenu);
+    }
+})();
+</script>

@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+
+{% block title %}Settings - Expense Tracker{% endblock %}
+
+{% block content %}
+<!-- Settings Page: Preferences (dark/light theme), logout, delete profile data, delete entire profile -->
+{% include 'nav_menu.html' %}
+
+<div class="container mt-4">
+    <h2>Settings</h2>
+    
+    <!-- Theme Preference: Toggle between dark and light theme -->
+    <div class="card mt-4 mb-4">
+        <div class="card-body">
+            <h5 class="card-title">Preferences</h5>
+            <div class="mb-3">
+                <label class="form-label">Theme</label>
+                <div>
+                    <input type="radio" class="btn-check" name="theme" id="lightTheme" value="light" {% if user.theme == 'light' %}checked{% endif %}>
+                    <label class="btn btn-outline-primary" for="lightTheme">Light</label>
+                    
+                    <input type="radio" class="btn-check" name="theme" id="darkTheme" value="dark" {% if user.theme == 'dark' %}checked{% endif %}>
+                    <label class="btn btn-outline-dark" for="darkTheme">Dark</label>
+                </div>
+            </div>
+            <button type="button" class="btn btn-primary" id="saveTheme">Save Theme</button>
+        </div>
+    </div>
+    
+    <!-- Account Actions: Logout, delete expense data, or delete entire profile -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">Account Actions</h5>
+            <div class="d-grid gap-2">
+                <a href="{{ url_for('logout') }}" class="btn btn-warning">Logout</a>
+                <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteExpensesModal">
+                    Delete All Expense Data
+                </button>
+                <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteProfileModal">
+                    Delete Entire Profile
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Expenses Modal: Confirmation dialog for deleting all expense data -->
+<div class="modal fade" id="deleteExpensesModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Delete All Expense Data</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete all your expense records? This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteExpenses">Delete</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Profile Modal: Confirmation dialog for deleting entire profile -->
+<div class="modal fade" id="deleteProfileModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Delete Entire Profile</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-danger"><strong>Warning!</strong> This will permanently delete your entire profile, including all expenses, planned payments, and budget data. This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteProfile">Delete Profile</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Save theme
+document.getElementById('saveTheme').addEventListener('click', async function() {
+    const theme = document.querySelector('input[name="theme"]:checked').value;
+    const response = await fetch('/settings', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({action: 'toggle_theme'})
+    });
+    
+    const result = await response.json();
+    if (result.success) {
+        alert('Theme updated successfully');
+        location.reload();
+    }
+});
+
+// Delete expenses
+document.getElementById('confirmDeleteExpenses').addEventListener('click', async function() {
+    const response = await fetch('/settings', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({action: 'delete_expenses'})
+    });
+    
+    const result = await response.json();
+    if (result.success) {
+        alert(result.message);
+        location.reload();
+    }
+});
+
+// Delete profile
+document.getElementById('confirmDeleteProfile').addEventListener('click', async function() {
+    if (!confirm('Are you absolutely sure? This will delete everything!')) {
+        return;
+    }
+    
+    const response = await fetch('/settings', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({action: 'delete_profile'})
+    });
+    
+    const result = await response.json();
+    if (result.success) {
+        alert(result.message);
+        window.location.href = '/login';
+    }
+});
+</script>
+{% endblock %}

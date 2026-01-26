@@ -1,0 +1,306 @@
+{% extends "base.html" %}
+
+{% block title %}Home - Expense Tracker{% endblock %}
+
+{% block content %}
+{% include 'nav_menu.html' %}
+
+<!-- Main Content Container: Scrollable container for all home page sections -->
+<div class="container-fluid mt-4">
+    <!-- Welcome Section: Displays welcome message with logged-in user's name -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2>Welcome, {{ user.username }}!</h2>
+        </div>
+    </div>
+
+    <!-- User Info and Balance Section: Shows user name, email, and current balance -->
+    <div class="row mb-4">
+        <div class="col-md-6 mb-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">User Information</h5>
+                    <p class="card-text"><strong>Name:</strong> {{ user.username }}</p>
+                    <p class="card-text"><strong>Email:</strong> {{ user.email }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 mb-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Current Balance</h5>
+                    <h3 class="text-success">{{ "%.2f"|format(user.balance) }} {{ user.currency }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Last Month Expenses Pie Chart Section: Displays pie chart of expenses by category for last 30 days using matplotlib -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Last Month Expenses by Category</h5>
+                    <div class="text-center">
+                        <img src="{{ url_for('home_pie_chart') }}" alt="Expense Chart" class="img-fluid" style="max-width: 500px;">
+                    </div>
+                    {% set total_expense = expenses|sum(attribute='amount') if expenses else 0 %}
+                    <p class="text-center mt-3"><strong>Total Expense (Last 30 Days):</strong> {{ "%.2f"|format(total_expense) }} {{ user.currency }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Expenses Overview Section: Shows last 2-3 expense records with "Show More" option to view all expenses -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Recent Expenses</h5>
+                    {% if recent_expenses %}
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Category</th>
+                                        <th>Amount</th>
+                                        <th>Description</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for expense in recent_expenses %}
+                                    <tr>
+                                        <td>{{ expense.date[:10] }}</td>
+                                        <td>{{ expense.category }}</td>
+                                        <td>{{ "%.2f"|format(expense.amount) }} {{ user.currency }}</td>
+                                        <td>{{ expense.description or '-' }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="text-center mt-3">
+                            <a href="{{ url_for('all_records') }}" class="btn btn-outline-primary">Show More</a>
+                        </div>
+                    {% else %}
+                        <p class="text-muted">No expenses recorded yet.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Balance Trend Area Graph Section: Area graph showing date vs balance trend using matplotlib -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Balance Trend (Last 30 Days)</h5>
+                    <div class="text-center">
+                        <img src="{{ url_for('balance_chart') }}" alt="Balance Chart" class="img-fluid">
+                    </div>
+                    <p class="text-center mt-3"><strong>Current Balance:</strong> {{ "%.2f"|format(user.balance) }} {{ user.currency }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Upcoming Payments Section: Displays planned payments (SIP, loan, rent, subscriptions, EMI, etc.) only when user has entered them -->
+    {% if upcoming_payments %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Upcoming Payments</h5>
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Title</th>
+                                    <th>Amount</th>
+                                    <th>Due Date</th>
+                                    <th>Category</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for payment in upcoming_payments %}
+                                <tr>
+                                    <td>{{ payment.title }}</td>
+                                    <td>{{ "%.2f"|format(payment.amount) }} {{ user.currency }}</td>
+                                    <td>{{ payment.payment_date }}</td>
+                                    <td>{{ payment.category or '-' }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Fixed Add Expense Button (Bottom Right): Fixed '+' button visible on all pages except profile, logout, sign in, and signup pages -->
+<button class="btn btn-primary btn-floating" id="addExpenseBtn" data-bs-toggle="modal" data-bs-target="#expenseModal">
+    <i class="bi bi-plus-lg"></i>
+</button>
+
+<!-- Expense Entry Modal: Popup form for adding expenses with categories (Foods & Drink, Shopping, Transportation, Housing, Vehicle, Entertainment, Investments, Other) and income option -->
+<div class="modal fade" id="expenseModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Transaction</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="expenseForm">
+                    <div class="mb-3">
+                        <label class="form-label">Transaction Type</label>
+                        <div>
+                            <input type="radio" class="btn-check" name="transactionType" id="expenseType" value="expense" checked>
+                            <label class="btn btn-outline-danger" for="expenseType">Expense</label>
+                            
+                            <input type="radio" class="btn-check" name="transactionType" id="incomeType" value="income">
+                            <label class="btn btn-outline-success" for="incomeType">Income</label>
+                        </div>
+                    </div>
+                    <div class="mb-3" id="categoryGroup">
+                        <label for="category" class="form-label">Category</label>
+                        <select class="form-select" id="category" name="category">
+                            <option value="">Select Category</option>
+                            <option value="Foods & Drink">Foods & Drink</option>
+                            <option value="Shopping">Shopping</option>
+                            <option value="Transportation">Transportation</option>
+                            <option value="Housing">Housing</option>
+                            <option value="Vehicle">Vehicle</option>
+                            <option value="Entertainment">Entertainment</option>
+                            <option value="Investments">Investments</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="amount" class="form-label">Amount</label>
+                        <input type="number" class="form-control" id="amount" name="amount" step="0.01" min="0" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description (Optional)</label>
+                        <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="cancelExpenseBtn">Cancel</button>
+                <button type="button" class="btn btn-primary" id="submitExpense">Submit</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Handle transaction type change
+document.querySelectorAll('input[name="transactionType"]').forEach(radio => {
+    radio.addEventListener('change', function() {
+        const categoryGroup = document.getElementById('categoryGroup');
+        if (this.value === 'income') {
+            categoryGroup.style.display = 'none';
+            document.getElementById('category').required = false;
+        } else {
+            categoryGroup.style.display = 'block';
+            document.getElementById('category').required = true;
+        }
+    });
+});
+
+// Submit expense
+document.getElementById('submitExpense').addEventListener('click', async function(e) {
+    e.preventDefault();
+    
+    const form = document.getElementById('expenseForm');
+    const amountInput = document.getElementById('amount');
+    const categorySelect = document.getElementById('category');
+    const descriptionInput = document.getElementById('description');
+    const transactionType = document.querySelector('input[name="transactionType"]:checked').value;
+    
+    const amount = parseFloat(amountInput.value);
+    const category = transactionType === 'income' ? 'Income' : categorySelect.value;
+    const description = descriptionInput.value || '';
+    
+    // Validation
+    if (!amount || amount <= 0) {
+        alert('Please enter a valid amount');
+        amountInput.focus();
+        return;
+    }
+    
+    if (transactionType === 'expense' && !category) {
+        alert('Please select a category');
+        categorySelect.focus();
+        return;
+    }
+    
+    const data = {
+        amount: amount,
+        category: category,
+        description: description,
+        is_income: transactionType === 'income'
+    };
+    
+    // Disable submit button during request
+    const submitBtn = document.getElementById('submitExpense');
+    const originalText = submitBtn.textContent;
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Submitting...';
+    
+    try {
+        const response = await fetch('/add_expense', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        if (result.success) {
+            // Reset form
+            form.reset();
+            // Close modal
+            const modalElement = document.getElementById('expenseModal');
+            const modal = bootstrap.Modal.getInstance(modalElement);
+            if (modal) {
+                modal.hide();
+            }
+            // Show success message briefly then reload
+            setTimeout(() => {
+                location.reload();
+            }, 500);
+        } else {
+            alert(result.message || 'Error adding transaction');
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalText;
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Network error. Please try again.');
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
+    }
+});
+
+// Reset form when modal is closed
+document.getElementById('expenseModal').addEventListener('hidden.bs.modal', function () {
+    const form = document.getElementById('expenseForm');
+    form.reset();
+    const submitBtn = document.getElementById('submitExpense');
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Submit';
+    // Reset category group visibility
+    document.getElementById('categoryGroup').style.display = 'block';
+    document.getElementById('category').required = true;
+});
+
+</script>
+{% endblock %}
