@@ -1,1 +1,411 @@
+/* General Styles */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    min-height: 100vh;
+    padding-bottom: 80px; /* Space for floating button */
+    padding-top: 20px; /* Space for nav icon */
+}
+
+/* Modern Card Design */
+.card {
+    margin-bottom: 1.5rem;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    border: none;
+    border-radius: 12px;
+    overflow: hidden;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+}
+
+.card-body {
+    padding: 1.5rem;
+}
+
+/* Auth Pages Styles */
+.auth-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.auth-card {
+    background: white;
+    padding: 2rem;
+    border-radius: 10px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    width: 100%;
+    max-width: 500px;
+}
+
+/* Dark Theme */
+.dark-theme {
+    background-color: #1a1a1a;
+    color: #e0e0e0;
+}
+
+.dark-theme .card {
+    background-color: #2d2d2d;
+    color: #e0e0e0;
+    border-color: #444;
+}
+
+.dark-theme .table {
+    color: #e0e0e0;
+}
+
+.dark-theme .form-control,
+.dark-theme .form-select {
+    background-color: #3d3d3d;
+    color: #e0e0e0;
+    border-color: #555;
+}
+
+.dark-theme .form-control:focus,
+.dark-theme .form-select:focus {
+    background-color: #3d3d3d;
+    color: #e0e0e0;
+    border-color: #667eea;
+}
+
+/* Fixed Add Expense Button (Bottom Right) */
+.btn-floating {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    font-size: 24px;
+    z-index: 1000;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-floating:hover {
+    transform: scale(1.1);
+    transition: transform 0.2s;
+}
+
+/* Hide floating button on specific pages */
+body.profile-page .btn-floating,
+body.logout-page .btn-floating,
+body.login-page .btn-floating,
+body.signup-page .btn-floating {
+    display: none !important;
+}
+
+/* Navigation Icon Button (Top Right) */
+.nav-icon-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1050;
+}
+
+.nav-icon-btn {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    color: white;
+    font-size: 24px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+.nav-icon-btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.4);
+}
+
+/* Navigation Menu */
+.nav-menu {
+    position: fixed;
+    top: 0;
+    right: -350px;
+    width: 320px;
+    height: 100vh;
+    background: white;
+    box-shadow: -2px 0 10px rgba(0,0,0,0.1);
+    transition: right 0.3s ease;
+    z-index: 1060;
+    overflow-y: auto;
+}
+
+.dark-theme .nav-menu {
+    background: #2d2d2d;
+    color: #e0e0e0;
+}
+
+.nav-menu.show {
+    right: 0;
+}
+
+.nav-menu-header {
+    padding: 20px;
+    border-bottom: 1px solid #e0e0e0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.dark-theme .nav-menu-header {
+    border-bottom-color: #444;
+}
+
+.nav-menu-header h5 {
+    margin: 0;
+    font-weight: 600;
+}
+
+.btn-close-nav {
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    color: #666;
+    padding: 5px;
+    line-height: 1;
+}
+
+.dark-theme .btn-close-nav {
+    color: #e0e0e0;
+}
+
+.btn-close-nav:hover {
+    color: #333;
+}
+
+.dark-theme .btn-close-nav:hover {
+    color: #fff;
+}
+
+.nav-menu-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.nav-menu-item {
+    display: flex;
+    align-items: center;
+    padding: 15px 20px;
+    color: #333;
+    text-decoration: none;
+    border-bottom: 1px solid #f0f0f0;
+    transition: all 0.2s ease;
+}
+
+.dark-theme .nav-menu-item {
+    color: #e0e0e0;
+    border-bottom-color: #444;
+}
+
+.nav-menu-item:hover {
+    background: #f8f9fa;
+    padding-left: 25px;
+}
+
+.dark-theme .nav-menu-item:hover {
+    background: #3d3d3d;
+}
+
+.nav-menu-item.active {
+    background: #667eea;
+    color: white;
+}
+
+.nav-menu-item i {
+    margin-right: 12px;
+    font-size: 18px;
+    width: 24px;
+}
+
+/* Navigation Overlay */
+.nav-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+    z-index: 1055;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+}
+
+.nav-overlay.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Navigation Bar (Old - keeping for compatibility) */
+.navbar {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Card Styles - Already defined above in Modern Card Design section */
+.card-title {
+    font-weight: 600;
+    margin-bottom: 1rem;
+    color: #333;
+}
+
+.dark-theme .card-title {
+    color: #e0e0e0;
+}
+
+/* Table Styles */
+.table-responsive {
+    overflow-x: auto;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .auth-card {
+        margin: 1rem;
+        padding: 1.5rem;
+    }
+    
+    .btn-floating {
+        bottom: 20px;
+        right: 20px;
+        width: 50px;
+        height: 50px;
+        font-size: 20px;
+    }
+    
+    .container-fluid {
+        padding: 0.5rem;
+    }
+}
+
+/* Form Validation Styles */
+.is-invalid {
+    border-color: #dc3545;
+}
+
+.invalid-feedback {
+    display: block;
+    color: #dc3545;
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+}
+
+/* Progress Bar for Budget */
+.progress {
+    height: 25px;
+}
+
+/* Alert Styles */
+.alert {
+    border-radius: 5px;
+}
+
+/* Modal Styles */
+.modal-content {
+    border-radius: 10px;
+}
+
+.dark-theme .modal-content {
+    background-color: #2d2d2d;
+    color: #e0e0e0;
+}
+
+.dark-theme .modal-header,
+.dark-theme .modal-footer {
+    border-color: #444;
+}
+
+/* Chart Images */
+img[alt="Expense Chart"],
+img[alt="Balance Chart"] {
+    max-width: 100%;
+    height: auto;
+    border-radius: 5px;
+}
+
+/* Smooth Scrolling */
+html {
+    scroll-behavior: smooth;
+}
+
+/* Button Hover Effects */
+.btn {
+    transition: all 0.3s ease;
+    border-radius: 8px;
+    font-weight: 500;
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+}
+
+/* Form Input Styling */
+.form-control, .form-select {
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    padding: 10px 15px;
+    transition: all 0.3s ease;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+}
+
+/* Page Title Styling */
+h2 {
+    color: #333;
+    font-weight: 700;
+    margin-bottom: 1.5rem;
+}
+
+.dark-theme h2 {
+    color: #e0e0e0;
+}
+
+/* Container Styling */
+.container, .container-fluid {
+    max-width: 1200px;
+}
+
+/* Table Styling */
+.table {
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.table thead {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.dark-theme .table thead {
+    background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+}
 
