@@ -220,23 +220,27 @@ def add_expense():
     category = data.get('category')
     description = data.get('description', '')
     is_income = data.get('is_income', False)
-    
+
     conn = get_db_connection()
-    
+
     if is_income:
-        # Update balance
-        update_user_balance(user_id, amount)
+        conn.execute(
+            'UPDATE users SET balance = balance + ? WHERE id = ?',
+            (amount, user_id)
+        )
     else:
-        # Add expense and deduct from balance
         conn.execute(
             'INSERT INTO expenses (user_id, amount, category, description) VALUES (?, ?, ?, ?)',
             (user_id, amount, category, description)
         )
-        update_user_balance(user_id, -amount)
-    
+        conn.execute(
+            'UPDATE users SET balance = balance - ? WHERE id = ?',
+            (amount, user_id)
+        )
+
     conn.commit()
     conn.close()
-    
+
     return jsonify({'success': True, 'message': 'Transaction added successfully'})
 
 @app.route('/profile', methods=['GET', 'POST'])
