@@ -243,6 +243,57 @@ def add_expense():
 
     return jsonify({'success': True, 'message': 'Transaction added successfully'})
 
+#Added this edit method 
+def edit_expense(expense_id):
+    conn = get_db_connection()
+
+    # Fetch expense
+    expense = conn.execute(
+        "SELECT * FROM expenses WHERE id = ? AND user_id = ?",
+        (expense_id, session['user_id'])
+    ).fetchone()
+
+    if not expense:
+        conn.close()
+        return redirect('/all_records')
+
+    categories = [
+        "Foods & Drink", "Shopping", "Transportation",
+        "Housing", "Vehicle", "Entertainment",
+        "Investments", "Other"
+    ]
+
+    if request.method == 'POST':
+        new_amount = float(request.form['amount'])
+        new_category = request.form['category']
+        new_description = request.form['description']
+
+        old_amount = expense['amount']
+        diff = new_amount - old_amount
+
+        conn.execute(
+            """UPDATE expenses
+               SET amount = ?, category = ?, description = ?
+               WHERE id = ?""",
+            (new_amount, new_category, new_description, expense_id)
+        )
+
+        conn.execute(
+            "UPDATE users SET balance = balance - ? WHERE id = ?",
+            (diff, session['user_id'])
+        )
+
+        conn.commit()
+        conn.close()
+        return redirect('/all_records')
+
+    conn.close()
+    return render_template(
+        'edit_expense.html',
+        expense=expense,
+        categories=categories
+    )
+    
 @app.route('/profile', methods=['GET', 'POST'])
 def profile():
     if 'user_id' not in session:
