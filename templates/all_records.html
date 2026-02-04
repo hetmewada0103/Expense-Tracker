@@ -57,6 +57,8 @@
                                 <th>Category</th>
                                 <th>Amount</th>
                                 <th>Description</th>
+                                <th>Actions</th>
+
                             </tr>
                         </thead>
                         <tbody>
@@ -66,6 +68,10 @@
                                 <td>{{ expense.category }}</td>
                                 <td>{{ "%.2f"|format(expense.amount) }}</td>
                                 <td>{{ expense.description or '-' }}</td>
+                                <td>
+                                    <button onclick="editExpense({{expense.id}})"><a href="{{ url_for('edit_expense', expense_id=expense.id) }}"
+                                    class="btn">Edit</a></button>
+                                </td>
                             </tr>
                             {% endfor %}
                         </tbody>
