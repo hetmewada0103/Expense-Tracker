@@ -2,8 +2,8 @@
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     min-height: 100vh;
-    padding-bottom: 80px; /* Space for floating button */
-    padding-top: 20px; /* Space for nav icon */
+    /* padding-bottom: 80px; */
+    /* padding-top: 20px; */
 }
 
 /* Modern Card Design */
@@ -31,7 +31,8 @@ body {
     justify-content: center;
     align-items: center;
     min-height: 100vh;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: whitesmoke;
+    /* background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); */
 }
 
 .auth-card {
@@ -114,7 +115,7 @@ body.signup-page .btn-floating {
     width: 50px;
     height: 50px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background:rgb(62, 62, 216);    
     border: none;
     color: white;
     font-size: 24px;
@@ -357,12 +358,12 @@ html {
 }
 
 .btn-primary {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border: none;
+    /* background; */
+    border:1px;
 }
 
 .btn-primary:hover {
-    background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+    background: blue;
 }
 
 /* Form Input Styling */
