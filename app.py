@@ -242,6 +242,17 @@ def add_expense():
     conn.close()
 
     return jsonify({'success': True, 'message': 'Transaction added successfully'})
+@app.route('/get_expense/<int:expense_id>')
+def get_expense(expense_id):
+    conn = get_db_connection()
+    expense = conn.execute(
+        "SELECT amount, category, description FROM expenses WHERE id = ?",
+        (expense_id,)
+    ).fetchone()
+    conn.close()
+
+    return jsonify(dict(expense))
+@app.route('/edit_expense/<int:expense_id>', methods=['GET', 'POST'])
 
 #Added this edit method 
 def edit_expense(expense_id):
@@ -293,7 +304,40 @@ def edit_expense(expense_id):
         expense=expense,
         categories=categories
     )
-    
+
+@app.route('/delete_expense/<int:expense_id>', methods=['POST'])
+def delete_expense(expense_id):
+    if 'user_id' not in session:
+        return redirect('/login')
+
+    conn = get_db_connection()
+
+    # Get amount before deleting
+    expense = conn.execute(
+        "SELECT amount FROM expenses WHERE id = ? AND user_id = ?",
+        (expense_id, session['user_id'])
+    ).fetchone()
+
+    if expense:
+        amount = expense['amount']
+
+        # Delete expense
+        conn.execute(
+            "DELETE FROM expenses WHERE id = ? AND user_id = ?",
+            (expense_id, session['user_id'])
+        )
+
+        # Update balance
+        conn.execute(
+            "UPDATE users SET balance = balance + ? WHERE id = ?",
+            (amount, session['user_id'])
+        )
+
+        conn.commit()
+
+    conn.close()
+    return redirect('/all_records')
+
 @app.route('/profile', methods=['GET', 'POST'])
 def profile():
     if 'user_id' not in session:
