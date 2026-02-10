@@ -5,171 +5,211 @@
 {% block content %}
 {% include 'nav_menu.html' %}
 
-<!-- Main Content Container: Scrollable container for all home page sections -->
-<div class="container-fluid mt-4">
-    <!-- Welcome Section: Displays welcome message with logged-in user's name -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <h2>Welcome, {{ user.username }}!</h2>
-        </div>
-    </div>
-
-    <!-- User Info and Balance Section: Shows user name, email, and current balance -->
-    <div class="row mb-4">
-        <div class="col-md-6 mb-3">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">User Information</h5>
-                    <p class="card-text"><strong>Name:</strong> {{ user.username }}</p>
-                    <p class="card-text"><strong>Email:</strong> {{ user.email }}</p>
+<div class="dashboard-wrapper">
+    <section class="hero-section py-5">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-8">
+                    <h1 class="hero-title mb-4">
+                        Welcome back, <span class="username-highlight">{{ user.username }}!</span>
+                    </h1>
+                    <p class="hero-subtitle mb-0">
+                        Monitor your expenses and stay on top of your finances
+                    </p>
                 </div>
-            </div>
-        </div>
-        <div class="col-md-6 mb-3">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Current Balance</h5>
-                    <h3 class="text-success">{{ "%.2f"|format(user.balance) }} {{ user.currency }}</h3>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Last Month Expenses Pie Chart Section: Displays pie chart of expenses by category for last 30 days using matplotlib -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Last Month Expenses by Category</h5>
-                    <div class="text-center">
-                        <img src="{{ url_for('home_pie_chart') }}" alt="Expense Chart" class="img-fluid" style="max-width: 500px;">
-                    </div>
+                <div class="col-lg-4 text-center text-lg-end">
                     {% set total_expense = expenses|sum(attribute='amount') if expenses else 0 %}
-                    <p class="text-center mt-3"><strong>Total Expense (Last 30 Days):</strong> {{ "%.2f"|format(total_expense) }} {{ user.currency }}</p>
+                    <!-- Simplified Balance Card -->
+                    <div class="balance-card-simple">
+                        <div class="balance-value">{{ "%.2f"|format(user.balance) }} {{ user.currency }}</div>
+                        <div class="balance-label">Current Balance</div>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
+    </section>
 
-    <!-- Recent Expenses Overview Section: Shows last 2-3 expense records with "Show More" option to view all expenses -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Recent Expenses</h5>
-                    {% if recent_expenses %}
+    <div class="container py-5">
+        <!-- Quick Actions - SMALLER BUTTONS -->
+        <div class="row mb-5">
+            <div class="col-12">
+                <div class="action-buttons d-flex flex-wrap gap-3 justify-content-center justify-content-lg-start">
+                    <button class="btn btn-primary btn-medium px-4 py-2" data-bs-toggle="modal" data-bs-target="#expenseModal">
+                        <i class="bi bi-plus-circle me-2"></i>Add Transaction
+                    </button>
+                    <a href="{{ url_for('all_records') }}" class="btn btn-outline-primary btn-medium px-4 py-2">
+                        <i class="bi bi-list-ul me-2"></i>View All Transactions
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Expenses Pie Chart - EXTRA LARGE -->
+        <div class="row mb-5">
+            <div class="col-12">
+                <div class="card h-100 chart-card">
+                    <div class="card-header">
+                        <h3 class="card-title mb-0">Expenses by Category</h3>
+                        <p class="text-muted mb-0">Last 30 days • Total: {{ "%.2f"|format(total_expense) }} {{ user.currency }}</p>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="chart-container-large">
+                            <img src="{{ url_for('home_pie_chart') }}" alt="Expenses Chart" class="img-fluid chart-image-large">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Balance Trend Chart - EXTRA LARGE -->
+        <div class="row mb-5">
+            <div class="col-12">
+                <div class="card h-100 chart-card">
+                    <div class="card-header">
+                        <h3 class="card-title mb-0">Balance Trend</h3>
+                        <p class="text-muted mb-0">Your balance over the last 30 days</p>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="chart-container-large">
+                            <img src="{{ url_for('balance_chart') }}" alt="Balance Chart" class="img-fluid chart-image-large">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Transactions - SIMPLE CATEGORY TEXT LIKE DESCRIPTION -->
+        <div class="row mb-5">
+            <div class="col-12">
+                <div class="card transaction-card">
+                    <div class="card-header d-flex justify-content-between align-items-center py-4">
+                        <div>
+                            <h3 class="card-title mb-1">Recent Transactions</h3>
+                            <p class="text-muted mb-0">
+                                {% if recent_expenses %}
+                                    {{ recent_expenses|length }} transactions this month
+                                {% else %}
+                                    No transactions yet
+                                {% endif %}
+                            </p>
+                        </div>
+                        <a href="{{ url_for('all_records') }}" class="btn btn-primary px-4 py-2 fw-semibold">
+                            View All Transactions
+                        </a>
+                    </div>
+                    <div class="card-body p-0">
+                        {% if recent_expenses %}
                         <div class="table-responsive">
-                            <table class="table table-striped">
+                            <table class="table table-modern mb-0">
                                 <thead>
                                     <tr>
                                         <th>Date</th>
                                         <th>Category</th>
-                                        <th>Amount</th>
                                         <th>Description</th>
+                                        <th class="text-end">Amount</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {% for expense in recent_expenses %}
-                                    <tr>
-                                        <td>{{ expense.date[:10] }}</td>
-                                        <td>{{ expense.category }}</td>
-                                        <td>{{ "%.2f"|format(expense.amount) }} {{ user.currency }}</td>
-                                        <td>{{ expense.description or '-' }}</td>
+                                    <tr class="transaction-row">
+                                        <td class="date-col fw-semibold">{{ expense.date[:10] }}</td>
+                                        <td class="category-col">
+                                            <!-- JUST SIMPLE TEXT - SAME AS DESCRIPTION -->
+                                            <span class="simple-category-text">{{ expense.category }}</span>
+                                        </td>
+                                        <td class="desc-col">{{ expense.description or '-' }}</td>
+                                        <td class="amount-col text-end fw-bold text-danger">
+                                            -{{ "%.2f"|format(expense.amount) }} {{ user.currency }}
+                                        </td>
                                     </tr>
                                     {% endfor %}
                                 </tbody>
                             </table>
                         </div>
-                        <div class="text-center mt-3">
-                            <a href="{{ url_for('all_records') }}" class="btn btn-outline-primary">Show More</a>
+                        {% else %}
+                        <div class="empty-state text-center py-5">
+                            <i class="bi bi-receipt-cutoff fs-1 text-muted mb-4"></i>
+                            <h4 class="text-muted mb-3">No transactions yet</h4>
+                            <p class="text-muted mb-4">Your transaction history will appear here</p>
+                            <button class="btn btn-primary px-5" data-bs-toggle="modal" data-bs-target="#expenseModal">
+                                Add First Transaction
+                            </button>
                         </div>
-                    {% else %}
-                        <p class="text-muted">No expenses recorded yet.</p>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Balance Trend Area Graph Section: Area graph showing date vs balance trend using matplotlib -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Balance Trend (Last 30 Days)</h5>
-                    <div class="text-center">
-                        <img src="{{ url_for('balance_chart') }}" alt="Balance Chart" class="img-fluid">
-                    </div>
-                    <p class="text-center mt-3"><strong>Current Balance:</strong> {{ "%.2f"|format(user.balance) }} {{ user.currency }}</p>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Upcoming Payments Section: Displays planned payments (SIP, loan, rent, subscriptions, EMI, etc.) only when user has entered them -->
-    {% if upcoming_payments %}
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Upcoming Payments</h5>
-                    <div class="table-responsive">
-                        <table class="table table-striped">
-                            <thead>
-                                <tr>
-                                    <th>Title</th>
-                                    <th>Amount</th>
-                                    <th>Due Date</th>
-                                    <th>Category</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for payment in upcoming_payments %}
-                                <tr>
-                                    <td>{{ payment.title }}</td>
-                                    <td>{{ "%.2f"|format(payment.amount) }} {{ user.currency }}</td>
-                                    <td>{{ payment.payment_date }}</td>
-                                    <td>{{ payment.category or '-' }}</td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
+                        {% endif %}
                     </div>
                 </div>
             </div>
         </div>
+
+        <!-- Upcoming Payments -->
+        {% if upcoming_payments %}
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header py-4">
+                        <h3 class="card-title mb-0">Upcoming Payments</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-4">
+                            {% for payment in upcoming_payments %}
+                            <div class="col-lg-4 col-md-6">
+                                <div class="payment-card-item p-4 border rounded-3 h-100">
+                                    <h6 class="mb-3 fw-semibold">{{ payment.title }}</h6>
+                                    <div class="d-flex justify-content-between">
+                                        <span class="text-muted">{{ payment.category or 'General' }}</span>
+                                        <div class="text-end">
+                                            <div class="amount-danger fw-bold fs-5">{{ "%.2f"|format(payment.amount) }} {{ user.currency }}</div>
+                                            <div class="date-small">{{ payment.payment_date }}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
     </div>
-    {% endif %}
 </div>
 
-<!-- Fixed Add Expense Button (Bottom Right): Fixed '+' button visible on all pages except profile, logout, sign in, and signup pages -->
-<button class="btn btn-primary btn-floating" id="addExpenseBtn" data-bs-toggle="modal" data-bs-target="#expenseModal">
-    <i class="bi bi-plus-lg"></i>
-</button>
+<!-- BIG FAB - NO BORDERS -->
+<div class="fab-container">
+    <button class="fab-big rounded-circle shadow-xl" 
+            data-bs-toggle="modal" 
+            data-bs-target="#expenseModal"
+            title="Add Transaction">
+        <i class="bi bi-plus"></i>
+    </button>
+</div>
 
-<!-- Expense Entry Modal: Popup form for adding expenses with categories (Foods & Drink, Shopping, Transportation, Housing, Vehicle, Entertainment, Investments, Other) and income option -->
+<!-- Expense Modal -->
 <div class="modal fade" id="expenseModal" tabindex="-1">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Add Transaction</h5>
+            <div class="modal-header border-0 pb-4">
+                <h5 class="modal-title fw-bold fs-4">Add Transaction</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
                 <form id="expenseForm">
-                    <div class="mb-3">
-                        <label class="form-label">Transaction Type</label>
-                        <div>
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold mb-3">Transaction Type</label>
+                        <div class="d-flex gap-3">
                             <input type="radio" class="btn-check" name="transactionType" id="expenseType" value="expense" checked>
-                            <label class="btn btn-outline-danger" for="expenseType">Expense</label>
-                            
+                            <label class="btn btn-outline-danger w-100 py-3" for="expenseType">
+                                <i class="bi bi-arrow-down-circle me-2"></i>Expense
+                            </label>
                             <input type="radio" class="btn-check" name="transactionType" id="incomeType" value="income">
-                            <label class="btn btn-outline-success" for="incomeType">Income</label>
+                            <label class="btn btn-outline-success w-100 py-3" for="incomeType">
+                                <i class="bi bi-arrow-up-circle me-2"></i>Income
+                            </label>
                         </div>
                     </div>
-                    <div class="mb-3" id="categoryGroup">
-                        <label for="category" class="form-label">Category</label>
-                        <select class="form-select" id="category" name="category">
+                    <div class="mb-4" id="categoryGroup">
+                        <label class="form-label fw-semibold">Category</label>
+                        <select class="form-select form-select-lg" id="category" name="category">
                             <option value="">Select Category</option>
                             <option value="Foods & Drink">Foods & Drink</option>
                             <option value="Shopping">Shopping</option>
@@ -181,126 +221,347 @@
                             <option value="Other">Other</option>
                         </select>
                     </div>
-                    <div class="mb-3">
-                        <label for="amount" class="form-label">Amount</label>
-                        <input type="number" class="form-control" id="amount" name="amount" step="0.01" min="0" required>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-8">
+                            <label class="form-label fw-semibold">Amount</label>
+                            <input type="number" class="form-control form-control-lg" id="amount" name="amount" step="0.01" min="0" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">{{ user.currency }}</label>
+                            <div class="form-control form-control-lg bg-light text-center fw-bold">{{ user.currency }}</div>
+                        </div>
                     </div>
-                    <div class="mb-3">
-                        <label for="description" class="form-label">Description (Optional)</label>
-                        <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                    <div class="mb-0">
+                        <label class="form-label fw-semibold">Description (Optional)</label>
+                        <textarea class="form-control form-control-lg" id="description" name="description" rows="3"></textarea>
                     </div>
                 </form>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="cancelExpenseBtn">Cancel</button>
-                <button type="button" class="btn btn-primary" id="submitExpense">Submit</button>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-outline-secondary px-4 py-2" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary px-5 py-2 fw-semibold" id="submitExpense">Add Transaction</button>
             </div>
         </div>
     </div>
 </div>
 {% endblock %}
 
+{% block extra_css %}
+<style>
+:root {
+    --blue-primary: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+    --blue-light: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+    --primary-blue: #2563eb;
+    --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    --shadow-hover: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+    --border-radius: 16px;
+}
+
+/* Clean Blue Background */
+body {
+    background: var(--blue-light);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    min-height: 100vh;
+}
+
+/* Clean Blue Hero Section */
+.hero-section {
+    background: var(--blue-primary);
+    color: white;
+    margin-bottom: 3rem;
+}
+
+/* Username Highlight */
+.username-highlight {
+    color: #e0f2fe;
+    font-weight: 800;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+/* Simplified Balance Card */
+.balance-card-simple {
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(10px);
+    padding: 1.5rem;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    text-align: center;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+}
+
+.balance-value {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+    line-height: 1.2;
+}
+
+.balance-label {
+    font-size: 0.95rem;
+    opacity: 0.9;
+    font-weight: 500;
+}
+
+/* Cards */
+.card {
+    border: none;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+    transition: all 0.3s ease;
+    background: white;
+}
+
+.card:hover {
+    box-shadow: var(--shadow-hover);
+    transform: translateY(-2px);
+}
+
+.chart-card {
+    border-top: 4px solid var(--primary-blue);
+}
+
+.transaction-card {
+    border-top: 4px solid #10b981;
+}
+
+.card-header {
+    background: white;
+    padding: 2rem 2.5rem;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.card-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin: 0;
+}
+
+/* EXTRA LARGE Graph Containers */
+.chart-container-large {
+    height: 650px !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    padding: 4rem 3rem;
+}
+
+.chart-image-large {
+    max-height: 95% !important;
+    max-width: 98% !important;
+    width: auto !important;
+    height: auto !important;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+}
+
+/* SIMPLE CATEGORY TEXT - SAME STYLE AS DESCRIPTION */
+.simple-category-text {
+    font-weight: 500;
+    color: #475569;
+    font-size: 0.95rem;
+}
+
+/* Improved Transaction Table */
+.table-modern {
+    margin: 0;
+}
+
+.table-modern thead th {
+    background: #f8fafc;
+    border: none;
+    color: #64748b;
+    font-weight: 600;
+    padding: 1.5rem 2rem;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.table-modern td {
+    padding: 1.5rem 2rem;
+    vertical-align: middle;
+    border-color: #f1f5f9;
+}
+
+.amount-col {
+    font-size: 1.1rem;
+}
+
+/* SMALLER Action Buttons */
+.action-buttons {
+    display: flex;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.btn-medium {
+    padding: 0.75rem 1.75rem !important;
+    font-size: 1rem !important;
+    border-radius: 12px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.btn-primary {
+    background: var(--primary-blue);
+    box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3);
+    border: none;
+}
+
+.btn-primary:hover {
+    background: #1d4ed8;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(37, 99, 235, 0.4);
+}
+
+.btn-outline-primary {
+    color: var(--primary-blue);
+    border: 2px solid var(--primary-blue);
+}
+
+.btn-outline-primary:hover {
+    background: var(--primary-blue);
+    color: white;
+    transform: translateY(-2px);
+}
+
+/* BIG FAB - NO BORDERS */
+.fab-container {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    z-index: 1060;
+}
+
+.fab-big {
+    width: 72px !important;
+    height: 72px !important;
+    font-size: 2rem !important;
+    box-shadow: 0 12px 40px rgba(37, 99, 235, 0.5) !important;
+    background: var(--primary-blue) !important;
+    border: none !important;  /* NO BORDER */
+    color: white !important;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.fab-big:hover {
+    transform: scale(1.1) translateY(-6px) !important;
+    box-shadow: 0 20px 50px rgba(37, 99, 235, 0.6) !important;
+    background: #1d4ed8 !important;
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+    .chart-container-large { 
+        height: 550px !important; 
+        padding: 3rem 2rem; 
+    }
+}
+
+@media (max-width: 768px) {
+    .hero-title { font-size: 1.75rem; }
+    .balance-value { font-size: 1.75rem; }
+    .chart-container-large { 
+        height: 450px !important; 
+        padding: 2rem 1.5rem; 
+    }
+    .fab-container { 
+        bottom: 25px; 
+        right: 25px; 
+    }
+    .fab-big { 
+        width: 64px !important; 
+        height: 64px !important; 
+        font-size: 1.6rem !important; 
+    }
+    .action-buttons { flex-direction: column; align-items: center; }
+    .btn-medium { 
+        width: 100%; 
+        max-width: 280px; 
+    }
+}
+</style>
+{% endblock %}
+
 {% block extra_js %}
 <script>
-// Handle transaction type change
-document.querySelectorAll('input[name="transactionType"]').forEach(radio => {
-    radio.addEventListener('change', function() {
-        const categoryGroup = document.getElementById('categoryGroup');
-        if (this.value === 'income') {
-            categoryGroup.style.display = 'none';
-            document.getElementById('category').required = false;
-        } else {
-            categoryGroup.style.display = 'block';
-            document.getElementById('category').required = true;
+document.addEventListener('DOMContentLoaded', function() {
+    // Transaction type toggle
+    document.querySelectorAll('input[name="transactionType"]').forEach(radio => {
+        radio.addEventListener('change', function() {
+            const categoryGroup = document.getElementById('categoryGroup');
+            if (this.value === 'income') {
+                categoryGroup.style.display = 'none';
+                document.getElementById('category').required = false;
+            } else {
+                categoryGroup.style.display = 'block';
+                document.getElementById('category').required = true;
+            }
+        });
+    });
+
+    // Submit form
+    document.getElementById('submitExpense').addEventListener('click', async function(e) {
+        e.preventDefault();
+        const form = document.getElementById('expenseForm');
+        const formData = new FormData(form);
+        const transactionType = document.querySelector('input[name="transactionType"]:checked').value;
+        
+        const data = {
+            amount: parseFloat(formData.get('amount')),
+            category: transactionType === 'income' ? 'Income' : formData.get('category'),
+            description: formData.get('description') || '',
+            is_income: transactionType === 'income'
+        };
+
+        if (!data.amount || data.amount <= 0) {
+            alert('Please enter a valid amount');
+            return;
+        }
+        if (transactionType === 'expense' && !data.category) {
+            alert('Please select a category');
+            return;
+        }
+
+        const btn = this;
+        const originalText = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Adding...';
+
+        try {
+            const response = await fetch('/add_expense', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            const result = await response.json();
+            
+            if (result.success) {
+                bootstrap.Modal.getInstance(document.getElementById('expenseModal')).hide();
+                setTimeout(() => location.reload(), 800);
+            } else {
+                alert(result.message || 'Error adding transaction');
+            }
+        } catch (error) {
+            alert('Network error. Please try again.');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
         }
     });
-});
 
-// Submit expense
-document.getElementById('submitExpense').addEventListener('click', async function(e) {
-    e.preventDefault();
-    
-    const form = document.getElementById('expenseForm');
-    const amountInput = document.getElementById('amount');
-    const categorySelect = document.getElementById('category');
-    const descriptionInput = document.getElementById('description');
-    const transactionType = document.querySelector('input[name="transactionType"]:checked').value;
-    
-    const amount = parseFloat(amountInput.value);
-    const category = transactionType === 'income' ? 'Income' : categorySelect.value;
-    const description = descriptionInput.value || '';
-    
-    // Validation
-    if (!amount || amount <= 0) {
-        alert('Please enter a valid amount');
-        amountInput.focus();
-        return;
-    }
-    
-    if (transactionType === 'expense' && !category) {
-        alert('Please select a category');
-        categorySelect.focus();
-        return;
-    }
-    
-    const data = {
-        amount: amount,
-        category: category,
-        description: description,
-        is_income: transactionType === 'income'
-    };
-    
-    // Disable submit button during request
-    const submitBtn = document.getElementById('submitExpense');
-    const originalText = submitBtn.textContent;
-    submitBtn.disabled = true;
-    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Submitting...';
-    
-    try {
-        const response = await fetch('/add_expense', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(data)
-        });
-        
-        const result = await response.json();
-        if (result.success) {
-            // Reset form
-            form.reset();
-            // Close modal
-            const modalElement = document.getElementById('expenseModal');
-            const modal = bootstrap.Modal.getInstance(modalElement);
-            if (modal) {
-                modal.hide();
-            }
-            // Show success message briefly then reload
-            setTimeout(() => {
-                location.reload();
-            }, 500);
-        } else {
-            alert(result.message || 'Error adding transaction');
-            submitBtn.disabled = false;
-            submitBtn.textContent = originalText;
-        }
-    } catch (error) {
-        console.error('Error:', error);
-        alert('Network error. Please try again.');
-        submitBtn.disabled = false;
-        submitBtn.textContent = originalText;
-    }
+    // Reset form
+    document.getElementById('expenseModal').addEventListener('hidden.bs.modal', function() {
+        document.getElementById('expenseForm').reset();
+        document.getElementById('categoryGroup').style.display = 'block';
+        document.querySelector('input[name="transactionType"][value="expense"]').checked = true;
+        document.getElementById('category').required = true;
+    });
 });
-
-// Reset form when modal is closed
-document.getElementById('expenseModal').addEventListener('hidden.bs.modal', function () {
-    const form = document.getElementById('expenseForm');
-    form.reset();
-    const submitBtn = document.getElementById('submitExpense');
-    submitBtn.disabled = false;
-    submitBtn.textContent = 'Submit';
-    // Reset category group visibility
-    document.getElementById('categoryGroup').style.display = 'block';
-    document.getElementById('category').required = true;
-});
-
 </script>
 {% endblock %}
