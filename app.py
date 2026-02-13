@@ -5,14 +5,31 @@ import sqlite3
 import os
 import json
 import matplotlib
-matplotlib.use('Agg')  # Use non-interactive backend
+matplotlib.use('Agg')  
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from matplotlib.backends.backend_pdf import PdfPages
 import io
 import base64
+import schedule
+import threading
+import time
+from flask_mail import Mail, Message
+import schedule
+import threading
+import time
+
+
 
 app = Flask(__name__)
+app.config['MAIL_SERVER'] = 'smtp.gmail.com'
+app.config['MAIL_PORT'] = 587
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USERNAME'] = 'team.exptracker@gmail.com'
+app.config['MAIL_PASSWORD'] = 'nqru ttmb ulgc atlg'
+
+mail = Mail(app)
+
 app.secret_key = 'your-secret-key-change-in-production'
 bcrypt = Bcrypt(app)
 
@@ -616,6 +633,66 @@ def planned_payments():
     
     return render_template('planned_payments.html', payments=payments, now=datetime.now())
 
+def check_payment_reminders():
+    conn = get_db_connection()
+
+    tomorrow = (datetime.now() + timedelta(days=1)).strftime('%Y-%m-%d')
+
+    payments =conn.execute(
+        '''
+        SELECT planned_payments.*, users.email
+        FROM planned_payments
+        JOIN users ON planned_payments.user_id = users.id
+        WHERE payment_date = ? AND reminder_sent = 0
+        ''',
+        (tomorrow,)
+    ).fetchall()
+
+    for p in payments:
+        send_payment_email(
+            p['email'],
+            p['title'],
+            p['amount'],
+            p['payment_date']
+        )
+
+        conn.execute(
+            "UPDATE planned_payments SET reminder_sent = 1 WHERE id = ?",
+            (p['id'],)
+        )
+
+    conn.commit()
+    conn.close()
+
+
+def send_payment_email(email, title, amount, date):
+    try:
+        msg = Message(
+            subject=f"Reminder: {title} due tomorrow",
+            sender=app.config['MAIL_USERNAME'],
+            recipients=[email]
+        )
+
+        msg.html = render_template(
+            "payment_reminder_email.html",
+            title=title,
+            amount=amount,
+            date=date
+        )
+
+        mail.send(msg)
+        print("Reminder email sent to", email)
+
+    except Exception as e:
+        print("Email error:", e)
+
+#temparory testing
+@app.route("/test_email")
+def test_email():
+    send_payment_email("hetmewada01@gmail.com", "Test", 100, "Tomorrow")
+    return "Email sent"
+
+
 @app.route('/budget', methods=['GET', 'POST'])
 def budget():
     if 'user_id' not in session:
@@ -778,6 +855,24 @@ def export_statistics():
         plt.close()
         return send_file(img, mimetype='image/jpeg', as_attachment=True, 
                         download_name=f'expenses_{period}.jpg')
+def send_payment_reminder_console(email, title, amount, date):
+    print("\n============================")
+    print("📧 REMINDER EMAIL (TEST MODE)")
+    print(f"To: {email}")
+    print(f"Payment: {title}")
+    print(f"Amount: {amount}")
+    print(f"Date: {date}")
+    print("Reminder: Payment due tomorrow!")
+    print("============================\n")
 
-if __name__ == '__main__':
-    app.run(debug=True)
+def run_scheduler():
+    with app.app_context():   # ⭐ THIS LINE FIXES EVERYTHING
+        while True:
+            schedule.run_pending()
+            time.sleep(30)
+schedule.every(1).minutes.do(check_payment_reminders)
+
+threading.Thread(target=run_scheduler, daemon=True).start()
+
+if __name__ == "__main__":
+    app.run(debug=True, use_reloader=False)
