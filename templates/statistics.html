@@ -3,67 +3,322 @@
 {% block title %}Statistics - Expense Tracker{% endblock %}
 
 {% block content %}
-<!-- Statistics Page: View expense data by graphs (date, monthly, yearly) using matplotlib with export functionality (PDF, JPG) -->
 {% include 'nav_menu.html' %}
 
-<div class="container mt-4">
-    <h2>Statistics</h2>
-    
-    <!-- Period Selection: Choose between daily, monthly, or yearly statistics -->
-    <div class="card mt-4 mb-4">
-        <div class="card-body">
-            <h5 class="card-title">Select Period</h5>
-            <div class="btn-group" role="group">
-                <input type="radio" class="btn-check" name="period" id="daily" value="daily" autocomplete="off">
-                <label class="btn btn-outline-primary" for="daily">Daily (Last 7 Days)</label>
-                
-                <input type="radio" class="btn-check" name="period" id="monthly" value="monthly" autocomplete="off" checked>
-                <label class="btn btn-outline-primary" for="monthly">Monthly (Last 30 Days)</label>
-                
-                <input type="radio" class="btn-check" name="period" id="yearly" value="yearly" autocomplete="off">
-                <label class="btn btn-outline-primary" for="yearly">Yearly (Last 365 Days)</label>
+<div class="dashboard-wrapper">
+    <!-- Simple Centered Hero -->
+    <section class="hero-section py-5 mb-5 text-center">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-lg-8">
+                    <h1 class="hero-title mb-4">Statistics</h1>
+                    <p class="hero-subtitle mb-0">Visualize your spending patterns and trends</p>
+                </div>
             </div>
         </div>
-    </div>
-    
-    <!-- Chart Display: Matplotlib-generated expense chart based on selected period -->
-    <div class="card mb-4">
-        <div class="card-body">
-            <h5 class="card-title">Expense Chart</h5>
-            <div class="text-center">
-                <img id="expenseChart" src="{{ url_for('expense_chart', period='monthly') }}" alt="Expense Chart" class="img-fluid">
+    </section>
+
+    <div class="container py-5">
+        <!-- 1. Select Time Period Section - ALL BUTTONS SAME COLOR -->
+        <div class="row mb-5">
+            <div class="col-12">
+                <div class="card h-100 filter-card filter-card-compact">
+                    <div class="card-header py-3">
+                        <h3 class="card-title mb-0 text-center">Select Time Period</h3>
+                    </div>
+                    <div class="card-body py-4 text-center">
+                        <div class="period-tabs d-flex justify-content-center gap-3 flex-wrap" id="periodTabs">
+                            <input type="radio" class="btn-check period-radio" name="period" id="daily" value="daily" autocomplete="off">
+                            <label class="btn period-btn" for="daily">
+                                <i class="bi bi-sunrise me-1"></i>Daily (7D)
+                            </label>
+                            
+                            <input type="radio" class="btn-check period-radio" name="period" id="monthly" value="monthly" autocomplete="off" checked>
+                            <label class="btn period-btn active" for="monthly">
+                                <i class="bi bi-calendar-month me-1"></i>Monthly (30D)
+                            </label>
+                            
+                            <input type="radio" class="btn-check period-radio" name="period" id="yearly" value="yearly" autocomplete="off">
+                            <label class="btn period-btn" for="yearly">
+                                <i class="bi bi-calendar-year me-1"></i>Yearly (365D)
+                            </label>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
-    </div>
-    
-    <!-- Export Options: Export statistics as PDF or JPG format -->
-    <div class="card">
-        <div class="card-body">
-            <h5 class="card-title">Export Data</h5>
-            <p>Export your expense statistics as PDF or JPG format.</p>
-            <div class="btn-group" role="group">
-                <button type="button" class="btn btn-danger" onclick="exportData('pdf')">Export as PDF</button>
-                <button type="button" class="btn btn-warning" onclick="exportData('jpg')">Export as JPG</button>
+
+        <!-- 2. EXTENDED Chart Section -->
+        <div class="row mb-5">
+            <div class="col-12">
+                <div class="card transaction-card h-100">
+                    <div class="card-header py-4 text-center">
+                        <h3 class="card-title mb-1">Expense Trend</h3>
+                        <p class="text-muted mb-0">Live chart updates automatically</p>
+                    </div>
+                    <div class="card-body p-4">
+                        <!-- EXTENDED CHART CONTAINER - 550px -->
+                        <div class="position-relative chart-container-extended" style="height: 550px; background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border-radius: 16px; border: 2px solid #e9ecef; overflow: hidden;">
+                            <!-- LOADING SPINNER -->
+                            <div id="chartLoader" class="position-absolute top-50 start-50 translate-middle z-3">
+                                <div class="spinner-border spinner-border-lg text-primary" role="status">
+                                    <span class="visually-hidden">Loading chart...</span>
+                                </div>
+                            </div>
+                            <!-- CHART IMAGE - VISIBLE IMMEDIATELY -->
+                            <img id="expenseChart" 
+                                 src="{{ url_for('expense_chart', period='monthly') }}" 
+                                 alt="Expense Trend Chart" 
+                                 class="w-100 h-100" 
+                                 style="object-fit: contain; display: block !important;">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. Export Section - PROFESSIONAL SMALL BUTTONS -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card stats-card">
+                    <div class="card-header py-3">
+                        <h5 class="card-title mb-0 text-center">Export Options</h5>
+                    </div>
+                    <div class="card-body py-3 text-center">
+                        <div class="d-flex gap-3 justify-content-center flex-wrap">
+                            <button class="btn-export-pdf export-btn-pro" onclick="exportData('pdf')">
+                                <i class="bi bi-file-earmark-pdf"></i>
+                                <span>Export as PDF</span>
+                            </button>
+                            <button class="btn-export-jpg export-btn-pro" onclick="exportData('jpg')">
+                                <i class="bi bi-file-earmark-image"></i>
+                                <span>Export as JPG</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </div>
+
+{% endblock %}
+
+{% block extra_css %}
+<style>
+:root {
+    --blue-primary: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+    --blue-light: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+    --primary-blue: #2563eb;
+    --neutral-gray: #6c757d;
+    --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    --shadow-hover: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+    --border-radius: 16px;
+}
+
+body {
+    background: var(--blue-light);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    min-height: 100vh;
+}
+
+.dashboard-wrapper {
+    padding-top: 80px;
+}
+
+.hero-section { 
+    background: var(--blue-primary); 
+    color: white; 
+}
+.hero-title { 
+    font-weight: 800; 
+    text-shadow: 0 1px 3px rgba(0,0,0,0.2); 
+    font-size: 2.5rem; 
+}
+.hero-subtitle { 
+    font-size: 1.2rem; 
+    opacity: 0.95; 
+}
+
+.card {
+    border: none;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+    transition: all 0.3s ease;
+    background: white;
+}
+.card:hover { 
+    box-shadow: var(--shadow-hover); 
+    transform: translateY(-2px); 
+}
+
+.filter-card { border-top: 4px solid var(--primary-blue); }
+.transaction-card { border-top: 4px solid #10b981; }
+.stats-card { border-top: 4px solid #3b82f6; }
+
+.filter-card-compact .card-header { padding: 1.25rem 2rem; }
+.filter-card-compact .card-body { padding: 1.25rem 2rem; }
+
+.card-header {
+    background: white;
+    padding: 1.5rem 2rem;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.card-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin: 0;
+}
+
+/* ALL PERIOD BUTTONS SAME COLOR - ONLY ACTIVE CHANGES */
+.period-btn {
+    border-radius: 12px !important;
+    font-weight: 600;
+    font-size: 0.9rem;
+    min-width: 140px;
+    border-width: 2px !important;
+    padding: 0.75rem 1.25rem !important;
+    transition: all 0.3s ease;
+    color: var(--neutral-gray) !important;
+    border-color: var(--neutral-gray) !important;
+    background: transparent !important;
+}
+
+.period-btn:hover {
+    color: #495057 !important;
+    border-color: #495057 !important;
+    background: rgba(108, 117, 125, 0.1) !important;
+    transform: translateY(-1px);
+}
+
+.period-btn.active {
+    color: white !important;
+    border-color: var(--primary-blue) !important;
+    background: var(--primary-blue) !important;
+    box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3) !important;
+    transform: translateY(-2px) !important;
+}
+
+/* PROFESSIONAL EXPORT BUTTONS */
+.export-btn-pro {
+    padding: 0.625rem 1.25rem !important;
+    font-size: 0.875rem !important;
+    font-weight: 500 !important;
+    border-radius: 8px !important;
+    border-width: 1.5px !important;
+    height: 42px;
+    min-width: 140px;
+    transition: all 0.2s ease;
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    text-decoration: none;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.btn-export-pdf {
+    color: #dc3545 !important;
+    border-color: #dc3545 !important;
+    background: rgba(220, 53, 69, 0.05) !important;
+}
+
+.btn-export-pdf:hover {
+    background: #dc3545 !important;
+    color: white !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 20px rgba(220, 53, 69, 0.3) !important;
+}
+
+.btn-export-jpg {
+    color: #f39c12 !important;
+    border-color: #f39c12 !important;
+    background: rgba(243, 156, 18, 0.05) !important;
+}
+
+.btn-export-jpg:hover {
+    background: #f39c12 !important;
+    color: white !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 20px rgba(243, 156, 18, 0.3) !important;
+}
+
+.chart-container-extended {
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+}
+
+@media (max-width: 768px) {
+    .hero-title { font-size: 1.75rem; }
+    .period-btn { min-width: 120px; font-size: 0.85rem; }
+    .export-btn-pro { 
+        min-width: 130px !important;
+        font-size: 0.85rem !important; 
+        height: 40px;
+    }
+}
+</style>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-// Update chart when period changes
-document.querySelectorAll('input[name="period"]').forEach(radio => {
-    radio.addEventListener('change', function() {
-        const period = this.value;
-        document.getElementById('expenseChart').src = `/api/expense_chart?period=${period}`;
+document.addEventListener('DOMContentLoaded', function() {
+    const expenseChart = document.getElementById('expenseChart');
+    const chartLoader = document.getElementById('chartLoader');
+    
+    // FIXED RADIO BUTTON SELECTION - PERFECTLY WORKING
+    document.querySelectorAll('.period-radio').forEach(radio => {
+        radio.addEventListener('change', function() {
+            const period = this.value;
+            
+            // Show loader immediately
+            chartLoader.style.display = 'block';
+            
+            // Remove ALL active classes first
+            document.querySelectorAll('.period-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Add active ONLY to clicked button
+            const activeLabel = document.querySelector(`label[for="${this.id}"]`);
+            activeLabel.classList.add('active');
+            
+            // Update chart with cache busting
+            expenseChart.src = `/api/expense_chart?period=${period}&t=${Date.now()}`;
+        });
     });
+    
+    // Hide loader when chart loads
+    expenseChart.addEventListener('load', function() {
+        chartLoader.style.display = 'none';
+    });
+    
+    // Error handling
+    expenseChart.addEventListener('error', function() {
+        chartLoader.style.display = 'none';
+        console.log('Chart endpoint failed - check /api/expense_chart');
+    });
+    
+    // Initial load check
+    if (expenseChart.complete) {
+        chartLoader.style.display = 'none';
+    }
 });
 
-// Export function
 function exportData(format) {
-    const period = document.querySelector('input[name="period"]:checked').value;
-    window.location.href = `/export_statistics?format=${format}&period=${period}`;
+    const period = document.querySelector('input[name="period"]:checked')?.value || 'monthly';
+    const btn = event.target.closest('button');
+    const originalText = btn.innerHTML;
+    
+    btn.disabled = true;
+    btn.innerHTML = `<span class="spinner-border spinner-border-sm me-2" style="width: 16px; height: 16px;"></span>Exporting...`;
+    
+    setTimeout(() => {
+        window.open(`/export_statistics?format=${format}&period=${period}`, '_blank');
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    }, 500);
 }
 </script>
 {% endblock %}
