@@ -3,136 +3,314 @@
 {% block title %}Settings - Expense Tracker{% endblock %}
 
 {% block content %}
-<!-- Settings Page: Preferences (dark/light theme), logout, delete profile data, delete entire profile -->
 {% include 'nav_menu.html' %}
 
-<div class="container mt-4">
-    <h2>Settings</h2>
-    
-    <!-- Theme Preference: Toggle between dark and light theme -->
-    <div class="card mt-4 mb-4">
-        <div class="card-body">
-            <h5 class="card-title">Preferences</h5>
-            <div class="mb-3">
-                <label class="form-label">Theme</label>
-                <div>
-                    <input type="radio" class="btn-check" name="theme" id="lightTheme" value="light" {% if user.theme == 'light' %}checked{% endif %}>
-                    <label class="btn btn-outline-primary" for="lightTheme">Light</label>
-                    
-                    <input type="radio" class="btn-check" name="theme" id="darkTheme" value="dark" {% if user.theme == 'dark' %}checked{% endif %}>
-                    <label class="btn btn-outline-dark" for="darkTheme">Dark</label>
+<div class="dashboard-wrapper">
+    <!-- Hero Section -->
+    <section class="hero-section py-4 mb-4">
+        <div class="container">
+            <div class="row align-items-center justify-content-center text-center">
+                <div class="col-lg-8 col-md-10">
+                    <h1 class="hero-title mb-3">
+                        <i class="bi bi-gear-fill me-2 text-white"></i>Settings
+                    </h1>
+                    <p class="hero-subtitle mb-0">Manage your account, data and learn more</p>
                 </div>
             </div>
-            <button type="button" class="btn btn-primary" id="saveTheme">Save Theme</button>
         </div>
-    </div>
-    
-    <!-- Account Actions: Logout, delete expense data, or delete entire profile -->
-    <div class="card mb-4">
-        <div class="card-body">
-            <h5 class="card-title">Account Actions</h5>
-            <div class="d-grid gap-2">
-                <a href="{{ url_for('logout') }}" class="btn btn-warning">Logout</a>
-                <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteExpensesModal">
-                    Delete All Expense Data
-                </button>
-                <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteProfileModal">
-                    Delete Entire Profile
-                </button>
+    </section>
+
+    <div class="container py-4">
+        <div class="row justify-content-center">
+            <div class="col-lg-10 col-md-12">
+                <!-- Account Actions Card - MOVED TO TOP -->
+                <div class="card settings-card shadow-lg mb-4">
+                    <div class="card-body p-4">
+                        <h3 class="card-title mb-4 fw-semibold">
+                            <i class="bi bi-person-x-fill me-2 text-danger"></i>Account Actions
+                        </h3>
+                        
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <a href="{{ url_for('logout') }}" class="btn btn-warning btn-lg w-100 h-100">
+                                    <i class="bi bi-box-arrow-right me-2"></i>Logout
+                                </a>
+                            </div>
+                            <div class="col-md-4">
+                                <button type="button" class="btn btn-outline-danger btn-lg w-100 h-100" 
+                                        data-bs-toggle="modal" data-bs-target="#deleteExpensesModal">
+                                    <i class="bi bi-trash-fill me-2"></i>Delete Expenses
+                                </button>
+                            </div>
+                            <div class="col-md-4">
+                                <button type="button" class="btn btn-danger btn-lg w-100 h-100" 
+                                        data-bs-toggle="modal" data-bs-target="#deleteProfileModal">
+                                    <i class="bi bi-person-x me-2"></i>Delete Profile
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- About Section - MOVED TO BOTTOM -->
+                <div class="card about-card shadow-lg mb-4">
+                    <div class="card-body p-4">
+                        <h3 class="card-title mb-4 fw-semibold">
+                            <i class="bi bi-info-circle-fill me-2 text-primary"></i>About Expense Tracker
+                        </h3>
+                        
+                        <div class="row g-4">
+                            <div class="col-md-4 text-center text-md-start">
+                                <div class="about-icon mb-3">
+                                    <i class="bi bi-graph-up-arrow fs-1 text-primary"></i>
+                                </div>
+                                <h5 class="fw-bold mb-2">Smart Money Management</h5>
+                                <p class="text-muted mb-0">
+                                    Track every expense, plan future payments, set budgets and gain complete control over your finances. 
+                                    Built for simplicity and power - your personal finance assistant.
+                                </p>
+                            </div>
+                            <div class="col-md-8">
+                                <div class="row g-3">
+                                    <div class="col-6">
+                                        <div class="feature-box">
+                                            <i class="bi bi-receipt text-success"></i>
+                                            <h6>Expense Tracking</h6>
+                                            <p class="small">Log daily expenses with categories, merchants and notes</p>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="feature-box">
+                                            <i class="bi bi-calendar-check text-info"></i>
+                                            <h6>Planned Payments</h6>
+                                            <p class="small">Track rent, EMIs, subscriptions & recurring bills</p>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="feature-box">
+                                            <i class="bi bi-pie-chart text-warning"></i>
+                                            <h6>Budget Control</h6>
+                                            <p class="small">Monthly budgets with spending limits per category</p>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="feature-box">
+                                            <i class="bi bi-phone text-primary"></i>
+                                            <h6>Fully Responsive</h6>
+                                            <p class="small">Perfect on desktop, tablet & mobile devices</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
+
+    <!-- Delete Expenses Modal -->
+    <div class="modal fade" id="deleteExpensesModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header border-0">
+                    <h5 class="modal-title fw-semibold">
+                        <i class="bi bi-exclamation-triangle text-warning me-2"></i>Delete All Expenses
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-center py-4">
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle-fill fs-1 mb-3 d-block"></i>
+                        <h6 class="mb-3">Delete All Expense Records?</h6>
+                        <p class="mb-0">This will permanently remove all your expense data. This action cannot be undone.</p>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 justify-content-center gap-2">
+                    <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger px-4" id="confirmDeleteExpenses">Delete Expenses</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Profile Modal -->
+    <div class="modal fade" id="deleteProfileModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header border-0">
+                    <h5 class="modal-title fw-semibold text-danger">
+                        <i class="bi bi-skull text-danger me-2"></i>Delete Entire Profile
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-center py-4">
+                    <div class="alert alert-danger">
+                        <i class="bi bi-x-circle-fill fs-1 mb-3 d-block"></i>
+                        <h6 class="mb-3 fw-bold">PERMANENT DELETION WARNING</h6>
+                        <p class="mb-0">This will delete your entire profile including all expenses, payments, and budgets. <strong>No recovery possible.</strong></p>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 justify-content-center gap-2">
+                    <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger px-4" id="confirmDeleteProfile">Delete Profile</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
 </div>
 
-<!-- Delete Expenses Modal: Confirmation dialog for deleting all expense data -->
-<div class="modal fade" id="deleteExpensesModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Delete All Expense Data</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <p>Are you sure you want to delete all your expense records? This action cannot be undone.</p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-danger" id="confirmDeleteExpenses">Delete</button>
-            </div>
-        </div>
-    </div>
-</div>
+{% endblock %}
 
-<!-- Delete Profile Modal: Confirmation dialog for deleting entire profile -->
-<div class="modal fade" id="deleteProfileModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Delete Entire Profile</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <p class="text-danger"><strong>Warning!</strong> This will permanently delete your entire profile, including all expenses, planned payments, and budget data. This action cannot be undone.</p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-danger" id="confirmDeleteProfile">Delete Profile</button>
-            </div>
-        </div>
-    </div>
-</div>
+{% block extra_css %}
+<style>
+:root {
+    --blue-primary: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+    --primary-blue: #2563eb;
+    --shadow-lg: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+    --border-radius: 16px;
+}
+
+.dashboard-wrapper {
+    padding-top: 75px;
+    /* ✅ CHANGED TO EXACT STATISTICS BACKGROUND */
+    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+    min-height: 100vh;
+}
+
+.hero-section {
+    background: var(--blue-primary);
+    color: white;
+    margin-bottom: 0;
+}
+
+.hero-title {
+    font-size: 2.2rem;
+    font-weight: 800;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+.hero-subtitle {
+    font-size: 1.1rem;
+    opacity: 0.95;
+}
+
+.about-card, .settings-card {
+    border: none;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-lg);
+    background: white;
+    overflow: hidden;
+}
+
+.about-icon i {
+    color: var(--primary-blue);
+    opacity: 0.8;
+}
+
+.feature-box {
+    text-align: center;
+    padding: 1.5rem 1rem;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+    border: 1px solid #e2e8f0;
+    height: 100%;
+    transition: all 0.3s ease;
+}
+
+.feature-box:hover {
+    background: linear-gradient(135deg, #e2e8f0, #f1f5f9);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+}
+
+.feature-box i {
+    font-size: 2rem;
+    margin-bottom: 0.75rem;
+    display: block;
+}
+
+.feature-box h6 {
+    margin-bottom: 0.5rem;
+    color: #1f2937;
+}
+
+.btn-lg {
+    font-size: 1rem !important;
+    padding: 1rem 1.5rem !important;
+    border-radius: 12px;
+    font-weight: 600;
+    min-height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .hero-title { font-size: 1.9rem; }
+    .hero-subtitle { font-size: 1rem; }
+    .feature-box { margin-bottom: 1rem; }
+}
+</style>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-// Save theme
-document.getElementById('saveTheme').addEventListener('click', async function() {
-    const theme = document.querySelector('input[name="theme"]:checked').value;
-    const response = await fetch('/settings', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({action: 'toggle_theme'})
+document.addEventListener('DOMContentLoaded', function() {
+    // Delete expenses
+    document.getElementById('confirmDeleteExpenses').addEventListener('click', async function() {
+        const submitBtn = this;
+        const originalText = submitBtn.innerHTML;
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Deleting...';
+        
+        try {
+            const response = await fetch('/settings', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({action: 'delete_expenses'})
+            });
+            
+            const result = await response.json();
+            if (result.success) {
+                location.reload();
+            }
+        } catch (error) {
+            console.error('Delete failed');
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+        }
     });
-    
-    const result = await response.json();
-    if (result.success) {
-        alert('Theme updated successfully');
-        location.reload();
-    }
-});
 
-// Delete expenses
-document.getElementById('confirmDeleteExpenses').addEventListener('click', async function() {
-    const response = await fetch('/settings', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({action: 'delete_expenses'})
+    // Delete profile
+    document.getElementById('confirmDeleteProfile').addEventListener('click', async function() {
+        if (!confirm('Are you ABSOLUTELY sure? This will delete EVERYTHING permanently!')) {
+            return;
+        }
+        
+        const submitBtn = this;
+        const originalText = submitBtn.innerHTML;
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Deleting...';
+        
+        try {
+            const response = await fetch('/settings', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({action: 'delete_profile'})
+            });
+            
+            const result = await response.json();
+            if (result.success) {
+                window.location.href = '/login';
+            }
+        } catch (error) {
+            console.error('Profile deletion failed');
+        }
     });
-    
-    const result = await response.json();
-    if (result.success) {
-        alert(result.message);
-        location.reload();
-    }
-});
-
-// Delete profile
-document.getElementById('confirmDeleteProfile').addEventListener('click', async function() {
-    if (!confirm('Are you absolutely sure? This will delete everything!')) {
-        return;
-    }
-    
-    const response = await fetch('/settings', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({action: 'delete_profile'})
-    });
-    
-    const result = await response.json();
-    if (result.success) {
-        alert(result.message);
-        window.location.href = '/login';
-    }
 });
 </script>
 {% endblock %}
