@@ -3,95 +3,334 @@
 {% block title %}All Records - Expense Tracker{% endblock %}
 
 {% block content %}
-<!-- All Records Page: View all expense records with filtering by date and category -->
 {% include 'nav_menu.html' %}
 
-<div class="container mt-4">
-    <h2>All Records</h2>
-    
-    <!-- Filter Section: Filter expenses by category and date range -->
-    <div class="card mt-4 mb-4">
-        <div class="card-body">
-            <h5 class="card-title">Filter Records</h5>
-            <form method="GET" action="{{ url_for('all_records') }}">
-                <div class="row">
-                    <div class="col-md-4 mb-3">
-                        <label for="category" class="form-label">Category</label>
-                        <select class="form-select" id="category" name="category">
-                            <option value="">All Categories</option>
-                            <option value="Foods & Drink">Foods & Drink</option>
-                            <option value="Shopping">Shopping</option>
-                            <option value="Transportation">Transportation</option>
-                            <option value="Housing">Housing</option>
-                            <option value="Vehicle">Vehicle</option>
-                            <option value="Entertainment">Entertainment</option>
-                            <option value="Investments">Investments</option>
-                            <option value="Other">Other</option>
-                        </select>
-                    </div>
-                    <div class="col-md-4 mb-3">
-                        <label for="date_from" class="form-label">From Date</label>
-                        <input type="date" class="form-control" id="date_from" name="date_from" value="{{ request.args.get('date_from', '') }}">
-                    </div>
-                    <div class="col-md-4 mb-3">
-                        <label for="date_to" class="form-label">To Date</label>
-                        <input type="date" class="form-control" id="date_to" name="date_to" value="{{ request.args.get('date_to', '') }}">
+<div class="dashboard-wrapper">
+    <section class="hero-section py-5 mb-5">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-8">
+                    <h1 class="hero-title mb-4">All Transactions</h1>
+                    <p class="hero-subtitle mb-0">View, filter, and manage your complete transaction history</p>
+                </div>
+                <div class="col-lg-4 text-center text-lg-end">
+                    {% set total_expense = namespace(value=0) %}
+                    {% if expenses %}
+                        {% for expense in expenses %}
+                            {% set total_expense.value = total_expense.value + (expense.amount|default(0)|float) %}
+                        {% endfor %}
+                    {% endif %}
+                    <div class="balance-card-simple">
+                        <div class="balance-value">{{ "%.2f"|format(total_expense.value) }} ₨</div>
+                        <div class="balance-label">Total Expenses</div>
                     </div>
                 </div>
-                <button type="submit" class="btn btn-primary">Apply Filters</button>
-                <a href="{{ url_for('all_records') }}" class="btn btn-secondary">Clear Filters</a>
-            </form>
+            </div>
         </div>
-    </div>
-    
-    <!-- Records Table: Display all filtered expense records -->
-    <div class="card">
-        <div class="card-body">
-            <h5 class="card-title">Expense Records</h5>
-            {% if expenses %}
-                <div class="table-responsive">
-                    <table class="table table-striped">
-                        <thead>
-                            <tr>
-                                <th>Date</th>
-                                <th>Category</th>
-                                <th>Amount</th>
-                                <th>Description</th>
-                                <th>Actions</th>
+    </section>
 
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for expense in expenses %}
-                            <tr>
-                                <td>{{ expense.date[:19] }}</td>
-                                <td>{{ expense.category }}</td>
-                                <td>{{ "%.2f"|format(expense.amount) }}</td>
-                                <td>{{ expense.description or '-' }}</td>
-                                <td class="d-flex gap-2">
-                                <a href="{{ url_for('edit_expense', expense_id=expense.id) }}"
-                                class="btn btn-sm">
-                                Edit
-                                </a>
-
-                                <form method="POST"
-                                    action="{{ url_for('delete_expense', expense_id=expense.id) }}"
-                                    onsubmit="return confirm('Delete this expense?');"
-                                    style="margin:0;">
-                                    <button class="btn btn-sm">
-                                        Delete
+    <div class="container py-5">
+        <!-- Filter Section - Made Smaller -->
+        <div class="row mb-5">
+            <div class="col-12">
+                <div class="card h-100 filter-card filter-card-compact">
+                    <div class="card-header py-3">
+                        <h3 class="card-title mb-0">Filter Transactions</h3>
+                    </div>
+                    <div class="card-body py-3">
+                        <form method="GET" action="{{ url_for('all_records') }}" id="filterForm">
+                            <div class="row g-3">
+                                <div class="col-lg-3 col-md-6">
+                                    <label class="form-label fw-semibold mb-2">Category</label>
+                                    <select class="form-select form-select-lg" name="category">
+                                        <option value="">All Categories</option>
+                                        <option value="Foods & Drink" {{ 'selected' if request.args.get('category') == 'Foods & Drink' }}>Foods & Drink</option>
+                                        <option value="Shopping" {{ 'selected' if request.args.get('category') == 'Shopping' }}>Shopping</option>
+                                        <option value="Transportation" {{ 'selected' if request.args.get('category') == 'Transportation' }}>Transportation</option>
+                                        <option value="Housing" {{ 'selected' if request.args.get('category') == 'Housing' }}>Housing</option>
+                                        <option value="Vehicle" {{ 'selected' if request.args.get('category') == 'Vehicle' }}>Vehicle</option>
+                                        <option value="Entertainment" {{ 'selected' if request.args.get('category') == 'Entertainment' }}>Entertainment</option>
+                                        <option value="Investments" {{ 'selected' if request.args.get('category') == 'Investments' }}>Investments</option>
+                                        <option value="Other" {{ 'selected' if request.args.get('category') == 'Other' }}>Other</option>
+                                    </select>
+                                </div>
+                                <div class="col-lg-3 col-md-6">
+                                    <label class="form-label fw-semibold mb-2">From Date</label>
+                                    <input type="date" class="form-control form-control-lg" name="date_from" 
+                                           value="{{ request.args.get('date_from', '') }}">
+                                </div>
+                                <div class="col-lg-3 col-md-6">
+                                    <label class="form-label fw-semibold mb-2">To Date</label>
+                                    <input type="date" class="form-control form-control-lg" name="date_to" 
+                                           value="{{ request.args.get('date_to', '') }}">
+                                </div>
+                                <div class="col-lg-3 col-md-6 d-flex align-items-end">
+                                    <!-- ✅ REFRESH BUTTON REMOVED -->
+                                    <button type="submit" class="btn btn-primary btn-medium px-4 py-2 w-100">
+                                        <i class="bi bi-funnel me-2"></i>Apply Filters
                                     </button>
-                                </form>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
                 </div>
-            {% else %}
-                <p class="text-muted">No records found.</p>
-            {% endif %}
+            </div>
+        </div>
+
+        <!-- Records Table -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card transaction-card h-100">
+                    <div class="card-header d-flex justify-content-between align-items-center py-4">
+                        <div>
+                            <h3 class="card-title mb-1">All Transactions</h3>
+                            <p class="text-muted mb-0">
+                                {% if expenses and expenses|length > 0 %}
+                                    {{ expenses|length }} total transactions • {{ "%.2f"|format(total_expense.value) }} ₨
+                                {% else %}
+                                    No transactions found
+                                {% endif %}
+                            </p>
+                        </div>
+                        <a href="{{ url_for('home') }}" class="btn btn-outline-primary px-4 py-2 fw-semibold">
+                            <i class="bi bi-house me-2"></i>Back to Dashboard
+                        </a>
+                    </div>
+                    <div class="card-body p-0">
+                        {% if expenses and expenses|length > 0 %}
+                        <div class="table-responsive">
+                            <table class="table table-modern mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Category</th>
+                                        <th>Description</th>
+                                        <th class="text-end">Amount</th>
+                                        <th class="text-end">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for expense in expenses %}
+                                    <tr class="transaction-row">
+                                        <td class="date-col fw-semibold">{{ expense.date[:10] if expense.date else 'No date' }}</td>
+                                        <td class="category-col">
+                                            <span class="simple-category-text">{{ expense.category|default('N/A') }}</span>
+                                        </td>
+                                        <td class="desc-col">{{ expense.description|default('-') }}</td>
+                                        <td class="amount-col text-end fw-bold text-danger">
+                                            -{{ "%.2f"|format(expense.amount|default(0)|float) }} ₨
+                                        </td>
+                                        <td class="action-col text-end">
+                                            <div class="d-flex gap-2 justify-content-end">
+                                                <a href="{{ url_for('edit_expense', expense_id=expense.id) }}" 
+                                                   class="btn btn-sm btn-outline-primary text-button">
+                                                    Edit
+                                                </a>
+                                                <form method="POST" action="{{ url_for('delete_expense', expense_id=expense.id) }}" 
+                                                      style="display: inline;" onsubmit="return confirm('Delete this transaction?');">
+                                                    <button type="submit" class="btn btn-sm btn-outline-danger text-button">
+                                                        Delete
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <div class="empty-state text-center py-5">
+                            <i class="bi bi-receipt-cutoff fs-1 text-muted mb-4"></i>
+                            <h4 class="text-muted mb-3">No transactions found</h4>
+                            <p class="text-muted mb-4">Try adjusting your filters or add your first transaction from the dashboard</p>
+                            <a href="{{ url_for('home') }}" class="btn btn-primary px-5 py-3">Go to Dashboard</a>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
+
+{% endblock %}
+
+{% block extra_css %}
+<style>
+:root {
+    --blue-primary: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+    --blue-light: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+    --primary-blue: #2563eb;
+    --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    --shadow-hover: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+    --border-radius: 16px;
+}
+
+body {
+    background: var(--blue-light);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    min-height: 100vh;
+}
+
+.dashboard-wrapper {
+    padding-top: 80px;
+}
+
+.hero-section { background: var(--blue-primary); color: white; margin-bottom: 3rem; }
+.hero-title { font-weight: 800; text-shadow: 0 1px 3px rgba(0,0,0,0.2); font-size: 2.5rem; }
+.hero-subtitle { font-size: 1.2rem; opacity: 0.95; }
+
+.balance-card-simple {
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(10px);
+    padding: 1.5rem;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    text-align: center;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+}
+
+.balance-value { font-size: 2rem; font-weight: 700; margin-bottom: 0.25rem; line-height: 1.2; }
+.balance-label { font-size: 0.95rem; opacity: 0.9; font-weight: 500; }
+
+.card {
+    border: none;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+    transition: all 0.3s ease;
+    background: white;
+}
+
+.card:hover { box-shadow: var(--shadow-hover); transform: translateY(-2px); }
+
+.filter-card { border-top: 4px solid var(--primary-blue); }
+.transaction-card { border-top: 4px solid #10b981; }
+
+/* Compact Filter Card */
+.filter-card-compact .card-header { padding: 1.25rem 2rem; }
+.filter-card-compact .card-body { padding: 1.25rem 2rem; }
+
+.card-header {
+    background: white;
+    padding: 2rem 2.5rem;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.card-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin: 0;
+}
+
+.simple-category-text { font-weight: 500; color: #475569; font-size: 0.95rem; }
+
+.table-modern { margin: 0; }
+.table-modern thead th {
+    background: #f8fafc;
+    border: none;
+    color: #64748b;
+    font-weight: 600;
+    padding: 1.5rem 2rem;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.table-modern td {
+    padding: 1.5rem 2rem;
+    vertical-align: middle;
+    border-color: #f1f5f9;
+}
+
+.date-col { min-width: 120px; }
+.category-col { min-width: 140px; }
+.desc-col { min-width: 200px; }
+.amount-col { font-size: 1.1rem; min-width: 140px; }
+.action-col { min-width: 140px; }
+
+.btn-medium {
+    padding: 0.75rem 1.75rem !important;
+    font-size: 1rem !important;
+    border-radius: 12px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+/* Text-only action buttons */
+.text-button {
+    padding: 0.375rem 0.75rem !important;
+    font-size: 0.8rem !important;
+    font-weight: 500 !important;
+    border-radius: 8px !important;
+    min-width: 60px;
+    text-align: center;
+}
+
+.btn-primary {
+    background: var(--primary-blue);
+    box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3);
+    border: none;
+}
+.btn-primary:hover {
+    background: #1d4ed8;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(37, 99, 235, 0.4);
+}
+
+.btn-outline-primary, .btn-outline-secondary {
+    color: var(--primary-blue);
+    border: 2px solid var(--primary-blue);
+}
+.btn-outline-primary:hover, .btn-outline-secondary:hover {
+    background: var(--primary-blue);
+    color: white;
+    transform: translateY(-2px);
+}
+
+.form-select-lg, .form-control-lg {
+    border-radius: 12px;
+    border: 2px solid #e5e7eb;
+    padding: 0.75rem 1rem;
+    font-weight: 500;
+}
+.form-select-lg:focus, .form-control-lg:focus {
+    border-color: var(--primary-blue);
+    box-shadow: 0 0 0 0.2rem rgba(37, 99, 235, 0.15);
+}
+
+.empty-state {
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border-radius: var(--border-radius);
+    border: 2px dashed #e5e7eb;
+}
+
+@media (max-width: 768px) {
+    .hero-title { font-size: 1.75rem; }
+    .balance-value { font-size: 1.5rem; }
+    .table-modern td { padding: 1rem; font-size: 0.9rem; }
+    .action-col { text-align: center; justify-content: center !important; }
+    .text-button { 
+        padding: 0.25rem 0.5rem !important; 
+        font-size: 0.75rem !important; 
+        min-width: 50px; 
+    }
+    .filter-card-compact .card-header,
+    .filter-card-compact .card-body { padding: 1rem !important; }
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('form[method="POST"]').forEach(form => {
+        form.addEventListener('submit', function(e) {
+            if (!confirm('Are you sure you want to delete this transaction? This action cannot be undone.')) {
+                e.preventDefault();
+            }
+        });
+    });
+});
+</script>
 {% endblock %}
