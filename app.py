@@ -633,6 +633,41 @@ def planned_payments():
     
     return render_template('planned_payments.html', payments=payments, now=datetime.now())
 
+@app.route('/edit_planned_payment/<int:payment_id>', methods=['POST'])
+def edit_planned_payment(payment_id):
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+    
+    user_id = session['user_id']
+    conn = get_db_connection()
+    
+    data = request.get_json()
+    conn.execute('''
+        UPDATE planned_payments 
+        SET title = ?, amount = ?, payment_date = ?, category = ?, recurring = ?
+        WHERE id = ? AND user_id = ?
+    ''', (data['title'], data['amount'], data['payment_date'], 
+          data['category'], data['recurring'], payment_id, user_id))
+    
+    conn.commit()
+    conn.close()
+    return jsonify({'success': True, 'message': 'Payment updated successfully'})
+
+@app.route('/delete_planned_payment/<int:payment_id>', methods=['POST'])
+def delete_planned_payment(payment_id):
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+    
+    user_id = session['user_id']
+    conn = get_db_connection()
+    
+    conn.execute('DELETE FROM planned_payments WHERE id = ? AND user_id = ?', 
+                (payment_id, user_id))
+    conn.commit()
+    conn.close()
+    
+    return jsonify({'success': True, 'message': 'Payment deleted successfully'})
+
 def check_payment_reminders():
     conn = get_db_connection()
 
