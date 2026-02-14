@@ -1,910 +1,424 @@
-from flask import Flask, render_template, request, redirect, url_for, session, jsonify, send_file, flash
-from flask_bcrypt import Bcrypt
-from datetime import datetime, timedelta
-import sqlite3
-import os
-import json
-import matplotlib
-matplotlib.use('Agg')  
-import matplotlib.pyplot as plt
-import matplotlib.dates as mdates
-from matplotlib.backends.backend_pdf import PdfPages
-import io
-import base64
-import schedule
-import threading
-import time
-from flask_mail import Mail, Message
-import schedule
-import threading
-import time
+{% extends "base.html" %}
 
+{% block title %}Planned Payments - Expense Tracker{% endblock %}
 
-app = Flask(__name__)
-app.config['MAIL_SERVER'] = 'smtp.gmail.com'
-app.config['MAIL_PORT'] = 587
-app.config['MAIL_USE_TLS'] = True
-app.config['MAIL_USERNAME'] = 'team.exptracker@gmail.com'
-app.config['MAIL_PASSWORD'] = 'nqru ttmb ulgc atlg'
+{% block content %}
+{% include 'nav_menu.html' %}
 
-mail = Mail(app)
+<div class="dashboard-wrapper">
+    <section class="hero-section py-4 mb-4">
+        <div class="container">
+            <div class="row align-items-center justify-content-center text-center">
+                <div class="col-lg-8 col-md-10">
+                    <h1 class="hero-title mb-3">Planned Payments</h1>
+                    <p class="hero-subtitle mb-0">Manage recurring payments, subscriptions, EMIs, rent & upcoming bills</p>
+                </div>
+            </div>
+        </div>
+    </section>
 
-app.secret_key = 'your-secret-key-change-in-production'
-bcrypt = Bcrypt(app)
+    <div class="container py-4">
+        <div class="row justify-content-center">
+            <div class="col-lg-10 col-md-12">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h3 class="mb-0 fw-semibold">
+                        <i class="bi bi-clock-history me-2 text-primary"></i>Upcoming Payments
+                    </h3>
+                    <button class="btn btn-primary btn-medium px-4 py-2 fw-semibold" 
+                            data-bs-toggle="modal" data-bs-target="#addPaymentModal">
+                        <i class="bi bi-plus-circle me-2"></i>Add New Payment
+                    </button>
+                </div>
 
-# Database initialization
-def init_db():
-    db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'expense_tracker.db')
-    conn = sqlite3.connect(db_path)
-    c = conn.cursor()
-    
-    # Users table
-    c.execute('''CREATE TABLE IF NOT EXISTS users
-                 (id INTEGER PRIMARY KEY AUTOINCREMENT,
-                  username TEXT UNIQUE NOT NULL,
-                  email TEXT UNIQUE NOT NULL,
-                  phone TEXT NOT NULL,
-                  password TEXT NOT NULL,
-                  currency TEXT NOT NULL,
-                  balance REAL NOT NULL DEFAULT 0,
-                  theme TEXT DEFAULT 'light',
-                  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
-    
-    # Expenses table
-    c.execute('''CREATE TABLE IF NOT EXISTS expenses
-                 (id INTEGER PRIMARY KEY AUTOINCREMENT,
-                  user_id INTEGER NOT NULL,
-                  amount REAL NOT NULL,
-                  category TEXT NOT NULL,
-                  description TEXT,
-                  date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                  FOREIGN KEY (user_id) REFERENCES users (id))''')
-    
-    # Planned payments table
-    c.execute('''CREATE TABLE IF NOT EXISTS planned_payments
-                 (id INTEGER PRIMARY KEY AUTOINCREMENT,
-                  user_id INTEGER NOT NULL,
-                  title TEXT NOT NULL,
-                  amount REAL NOT NULL,
-                  payment_date DATE NOT NULL,
-                  category TEXT,
-                  recurring INTEGER DEFAULT 0,
-                  FOREIGN KEY (user_id) REFERENCES users (id))''')
-    
-    # Budget table
-    c.execute('''CREATE TABLE IF NOT EXISTS budget
-                 (id INTEGER PRIMARY KEY AUTOINCREMENT,
-                  user_id INTEGER NOT NULL,
-                  month INTEGER NOT NULL,
-                  year INTEGER NOT NULL,
-                  amount REAL NOT NULL,
-                  FOREIGN KEY (user_id) REFERENCES users (id),
-                  UNIQUE(user_id, month, year))''')
-    
-    conn.commit()
-    conn.close()
+                <div class="card payments-card-compact shadow-lg">
+                    <div class="card-body p-3">
+                        {% if payments %}
+                            <div class="table-responsive">
+                                <table class="table table-hover compact-table">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Title</th>
+                                            <th>Amount</th>
+                                            <th>Status</th>
+                                            <th>Category</th>
+                                            <th>Recurring</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for payment in payments %}
+                                        <tr class="payment-row">
+                                            <td class="fw-semibold">{{ payment.title[:20] }}{% if payment.title|length > 20 %}...{% endif %}</td>
+                                            <td class="text-success fw-bold">₹{{ "%.2f"|format(payment.amount) }}</td>
 
-init_db()
+                                            <td class="fw-bold">
+                                                {% set today = now.strftime('%Y-%m-%d') %}
+                                                {% if payment.payment_date < today %}
+                                                    <span class="text-danger">Overdue</span>
+                                                {% elif payment.payment_date == today %}
+                                                    <span class="text-warning">Today</span>
+                                                {% else %}
+                                                    <span class="text-muted">Upcoming</span>
+                                                {% endif %}
+                                            </td>
 
-# Helper functions
-def get_db_connection():
-    # Use absolute path to ensure database is in the correct location
-    db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'expense_tracker.db')
-    conn = sqlite3.connect(db_path)
-    conn.row_factory = sqlite3.Row
-    return conn
+                                            <td class="fw-bold text-secondary">
+                                                {{ payment.category or 'General' }}
+                                            </td>
 
-def get_user_expenses(user_id, days=30):
-    conn = get_db_connection()
-    start_date = (datetime.now() - timedelta(days=days)).strftime('%Y-%m-%d %H:%M:%S')
-    expenses = conn.execute(
-        'SELECT * FROM expenses WHERE user_id = ? AND date >= ? ORDER BY date DESC',
-        (user_id, start_date)
-    ).fetchall()
-    conn.close()
-    return expenses
+                                            <td class="fw-semibold">
+                                                {% if payment.recurring == 1 %}
+                                                    <span class="text-primary">Yes</span>
+                                                {% else %}
+                                                    <span class="text-muted">No</span>
+                                                {% endif %}
+                                            </td>
 
-def get_user_balance(user_id):
-    conn = get_db_connection()
-    user = conn.execute('SELECT balance FROM users WHERE id = ?', (user_id,)).fetchone()
-    conn.close()
-    return user['balance'] if user else 0
+                                                <td>
+                                                    <div class="d-flex gap-2">
+                                                        <button class="btn btn-edit-text btn-sm edit-btn"
+                                                                data-id="{{ payment.id }}"
+                                                                data-title="{{ payment.title|e }}"
+                                                                data-amount="{{ payment.amount }}"
+                                                                data-date="{{ payment.payment_date }}"
+                                                                data-category="{{ payment.category or '' }}"
+                                                                data-recurring="{{ '1' if payment.recurring else '0' }}">
+                                                            Edit
+                                                        </button>
 
-def update_user_balance(user_id, amount):
-    conn = get_db_connection()
-    conn.execute('UPDATE users SET balance = balance + ? WHERE id = ?', (amount, user_id))
-    conn.commit()
-    conn.close()
+                                                        <button class="btn btn-delete-text btn-sm delete-btn"
+                                                                data-id="{{ payment.id }}">
+                                                            Delete
+                                                        </button>
+                                                    </div>
 
-# Routes
-@app.route('/')
-def index():
-    if 'user_id' in session:
-        return redirect(url_for('home'))
-    return redirect(url_for('login'))
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% else %}
+                            <div class="empty-state-compact text-center py-4">
+                                <div class="empty-icon mb-3">
+                                    <i class="bi bi-calendar-x fs-1 text-muted"></i>
+                                </div>
+                                <h5 class="text-muted mb-2">No planned payments</h5>
+                                <p class="text-muted small mb-3">Add rent, EMI, or subscriptions to get started</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
-@app.route('/signup', methods=['GET', 'POST'])
-def signup():
-    if request.method == 'POST':
-        data = request.get_json()
-        username = data.get('username')
-        email = data.get('email')
-        phone = data.get('phone')
-        password = data.get('password')
-        currency = data.get('currency')
-        balance = float(data.get('balance', 0))
+<!-- Add Payment Modal -->
+<div class="modal fade" id="addPaymentModal" tabindex="-1">
+    <div class="modal-dialog modal-md">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header border-0 pb-2">
+                <h5 class="modal-title fw-semibold">
+                    <i class="bi bi-calendar-plus text-primary me-2"></i>Add Payment
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-3">
+                <form id="paymentForm">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small">Title *</label>
+                            <input type="text" class="form-control" id="title" name="title" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small">Amount *</label>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text bg-primary text-white small">₹</span>
+                                <input type="number" class="form-control" id="amount" name="amount" step="0.01" min="0" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small">Due Date *</label>
+                            <input type="date" class="form-control" id="payment_date" name="payment_date" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small">Category</label>
+                            <select class="form-select" id="category" name="category">
+                                <option value="">Choose...</option>
+                                <option value="Rent">Rent</option>
+                                <option value="EMI">EMI/Loan</option>
+                                <option value="Subscription">Subscription</option>
+                                <option value="Utility">Utility</option>
+                                <option value="Insurance">Insurance</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-check form-switch form-switch-sm">
+                                <input class="form-check-input" type="checkbox" id="recurring" name="recurring">
+                                <label class="form-check-label fw-semibold small" for="recurring">Recurring Payment</label>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer border-0 pt-1">
+                <button type="button" class="btn btn-outline-secondary btn-sm px-4 py-2" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary btn-sm px-4 py-2" id="submitPayment">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Payment Modal -->
+<div class="modal fade" id="editPaymentModal" tabindex="-1">
+    <div class="modal-dialog modal-md">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header border-0 pb-2">
+                <h5 class="modal-title fw-semibold">
+                    <i class="bi bi-pencil text-primary me-2"></i>Edit Payment
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-3">
+                <form id="editPaymentForm">
+                    <input type="hidden" id="edit_payment_id">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small">Title *</label>
+                            <input type="text" class="form-control" id="edit_title" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small">Amount *</label>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text bg-primary text-white small">₹</span>
+                                <input type="number" class="form-control" id="edit_amount" step="0.01" min="0" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small">Due Date *</label>
+                            <input type="date" class="form-control" id="edit_payment_date" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small">Category</label>
+                            <select class="form-select" id="edit_category">
+                                <option value="">Choose...</option>
+                                <option value="Rent">Rent</option>
+                                <option value="EMI">EMI/Loan</option>
+                                <option value="Subscription">Subscription</option>
+                                <option value="Utility">Utility</option>
+                                <option value="Insurance">Insurance</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-check form-switch form-switch-sm">
+                                <input class="form-check-input" type="checkbox" id="edit_recurring">
+                                <label class="form-check-label fw-semibold small" for="edit_recurring">Recurring Payment</label>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer border-0 pt-1">
+                <button type="button" class="btn btn-outline-secondary btn-sm px-4 py-2" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary btn-sm px-4 py-2" id="submitEditPayment">Update</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_css %}
+<style>
+
+    .btn-edit-text {
+    background: transparent;
+    color: #2563eb;
+    border: 2px solid #2563eb;
+    font-weight: 600;
+    padding: 4px 16px;
+    border-radius: 10px;
+    min-width: 64px;
+    text-align: center;
+}
+
+.btn-edit-text:hover {
+    background: #2563eb;
+    color: #ffffff;
+}
+
+.btn-delete-text {
+    background: transparent;
+    color: #dc2626;
+    border: 2px solid #dc2626;
+    font-weight: 600;
+    padding: 4px 16px;
+    border-radius: 10px;
+    min-width: 72px;
+    text-align: center;
+}
+
+.btn-delete-text:hover {
+    background: #dc2626;
+    color: #ffffff;
+}
+
+:root {
+    --blue-primary: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+    --primary-blue: #2563eb;
+    --shadow-lg: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+    --border-radius: 16px;
+}
+.dashboard-wrapper { padding-top: 75px; background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); min-height: 100vh; }
+.hero-section { background: var(--blue-primary); color: white; margin-bottom: 0; }
+.hero-title { font-size: 2.2rem; font-weight: 800; text-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+.hero-subtitle { font-size: 1.1rem; opacity: 0.95; }
+.payments-card-compact { border: none; border-radius: var(--border-radius); box-shadow: var(--shadow-lg); overflow: hidden; background: white; }
+.compact-table { margin-bottom: 0; font-size: 0.9rem; }
+.compact-table th { font-weight: 600; color: #1f2937; border: none; padding: 0.875rem 0.75rem; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; }
+.compact-table td { padding: 0.875rem 0.75rem; vertical-align: middle; border-color: #f1f5f9; }
+.badge-sm, .badge-xs { font-size: 0.7rem; padding: 0.25rem 0.5rem; }
+.empty-state-compact { padding: 2rem 1.5rem; }
+.empty-icon i { opacity: 0.3; }
+.btn-medium { padding: 0.5rem 1.5rem !important; font-size: 0.95rem !important; border-radius: 10px; font-weight: 600; }
+.btn-primary { background: var(--primary-blue); border: none; box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3); }
+.btn-primary:hover { background: #1d4ed8; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4); }
+.btn-group-sm .btn { border-radius: 6px !important; font-size: 0.8rem; height: 32px; width: 36px; display: flex; align-items: center; justify-content: center; }
+.btn-group-sm .btn:hover { transform: translateY(-1px); box-shadow: 0 4px 8px rgba(0,0,0,0.15); }
+.modal-content { border-radius: var(--border-radius); }
+.form-control, .form-select { border-radius: 10px; border: 2px solid #e2e8f0; padding: 0.625rem 1rem; font-weight: 500; font-size: 0.9rem; }
+.form-control:focus, .form-select:focus { border-color: var(--primary-blue); box-shadow: 0 0 0 0.2rem rgba(37, 99, 235, 0.15); }
+.input-group-sm .input-group-text { background: var(--primary-blue) !important; color: white; border: none !important; font-weight: 600; font-size: 0.85rem; }
+.form-switch-sm .form-check-input { width: 2.5em; height: 1.25em; }
+.form-switch-sm .form-check-input:checked { background-color: var(--primary-blue); border-color: var(--primary-blue); }
+@media (max-width: 768px) { .hero-title { font-size: 1.9rem; } .btn-group-sm .btn { width: 32px; height: 30px; font-size: 0.75rem; } }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Add Payment
+    document.getElementById('submitPayment').addEventListener('click', async function() {
+        const formData = {
+            title: document.getElementById('title').value.trim(),
+            amount: parseFloat(document.getElementById('amount').value),
+            payment_date: document.getElementById('payment_date').value,
+            category: document.getElementById('category').value || null,
+            recurring: document.getElementById('recurring').checked ? 1 : 0
+        };
         
-        conn = get_db_connection()
+        if (!formData.title || !formData.amount || !formData.payment_date) {
+            alert('Please fill all required fields');
+            return;
+        }
         
-        # Check if username or email exists
-        existing = conn.execute(
-            'SELECT * FROM users WHERE username = ? OR email = ?',
-            (username, email)
-        ).fetchone()
+        const btn = this;
+        const originalText = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = 'Saving...';
         
-        if existing:
-            conn.close()
-            return jsonify({'success': False, 'message': 'Username or email already exists'})
+        try {
+            const response = await fetch('/planned_payments', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(formData)
+            });
+            const result = await response.json();
+            
+            if (result.success) {
+                btn.innerHTML = 'Saved! ✅';
+                setTimeout(() => location.reload(), 1200);
+            } else {
+                alert(result.message || 'Error saving payment');
+            }
+        } catch (error) {
+            alert('Network error');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+    });
+
+    // Edit Payment
+    document.querySelectorAll('.edit-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.getElementById('edit_payment_id').value = this.dataset.id;
+            document.getElementById('edit_title').value = this.dataset.title;
+            document.getElementById('edit_amount').value = this.dataset.amount;
+            document.getElementById('edit_payment_date').value = this.dataset.date;
+            document.getElementById('edit_category').value = this.dataset.category;
+            document.getElementById('edit_recurring').checked = this.dataset.recurring == '1';
+            new bootstrap.Modal(document.getElementById('editPaymentModal')).show();
+        });
+    });
+
+    document.getElementById('submitEditPayment').addEventListener('click', async function() {
+        const formData = {
+            id: document.getElementById('edit_payment_id').value,
+            title: document.getElementById('edit_title').value.trim(),
+            amount: parseFloat(document.getElementById('edit_amount').value),
+            payment_date: document.getElementById('edit_payment_date').value,
+            category: document.getElementById('edit_category').value || null,
+            recurring: document.getElementById('edit_recurring').checked ? 1 : 0
+        };
         
-        # Hash password
-        hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')
+        const btn = this;
+        const originalText = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = 'Updating...';
         
-        # Insert user
-        conn.execute(
-            'INSERT INTO users (username, email, phone, password, currency, balance) VALUES (?, ?, ?, ?, ?, ?)',
-            (username, email, phone, hashed_password, currency, balance)
-        )
-        conn.commit()
-        conn.close()
-        
-        return jsonify({'success': True, 'message': 'Account created successfully'})
-    
-    return render_template('signup.html')
+        try {
+            const response = await fetch(`/edit_planned_payment/${formData.id}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(formData)
+            });
+            const result = await response.json();
+            
+            if (result.success) {
+                btn.innerHTML = 'Updated! ✅';
+                setTimeout(() => location.reload(), 1200);
+            } else {
+                alert(result.message || 'Error updating payment');
+            }
+        } catch (error) {
+            alert('Network error');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+    });
 
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    if request.method == 'POST':
-        data = request.get_json()
-        username = data.get('username')
-        password = data.get('password')
-        
-        conn = get_db_connection()
-        user = conn.execute(
-            'SELECT * FROM users WHERE username = ?',
-            (username,)
-        ).fetchone()
-        conn.close()
-        
-        if user and bcrypt.check_password_hash(user['password'], password):
-            session['user_id'] = user['id']
-            session['username'] = user['username']
-            session['theme'] = user['theme'] or 'light'
-            return jsonify({'success': True, 'message': 'Login successful'})
-        else:
-            return jsonify({'success': False, 'message': 'Invalid username or password'})
-    
-    return render_template('login.html')
+    // Delete Payment
+    document.querySelectorAll('.delete-btn').forEach(btn => {
+        btn.addEventListener('click', async function() {
+            if (confirm('Are you sure you want to delete this payment?')) {
+                try {
+                    const response = await fetch(`/delete_planned_payment/${this.dataset.id}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+                    const result = await response.json();
+                    if (result.success) {
+                        location.reload();
+                    } else {
+                        alert('Delete failed');
+                    }
+                } catch (error) {
+                    alert('Network error');
+                }
+            }
+        });
+    });
 
-@app.route('/logout')
-def logout():
-    session.clear()
-    return redirect(url_for('login'))
-
-@app.route('/home')
-def home():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-    
-    user_id = session['user_id']
-    conn = get_db_connection()
-    user = conn.execute('SELECT * FROM users WHERE id = ?', (user_id,)).fetchone()
-    conn.close()
-    
-    if not user:
-        session.clear()
-        return redirect(url_for('login'))
-    
-    # Get last month expenses
-    expenses = get_user_expenses(user_id, 30)
-    if expenses is None:
-        expenses = []
-    
-    # Get last 2-3 expenses
-    recent_expenses = expenses[:3] if expenses else []
-    
-    # Get upcoming payments
-    conn = get_db_connection()
-    upcoming_payments = conn.execute(
-        '''SELECT * FROM planned_payments 
-           WHERE user_id = ? AND payment_date >= date('now')
-           ORDER BY payment_date ASC LIMIT 5''',
-        (user_id,)
-    ).fetchall()
-    conn.close()
-    
-    return render_template('home.html', user=user, expenses=expenses, 
-                         recent_expenses=recent_expenses, upcoming_payments=upcoming_payments)
-
-@app.route('/add_expense', methods=['POST'])
-def add_expense():
-    if 'user_id' not in session:
-        return jsonify({'success': False, 'message': 'Not logged in'})
-    
-    data = request.get_json()
-    user_id = session['user_id']
-    amount = float(data.get('amount', 0))
-    category = data.get('category')
-    description = data.get('description', '')
-    is_income = data.get('is_income', False)
-
-    conn = get_db_connection()
-
-    if is_income:
-        conn.execute(
-            'UPDATE users SET balance = balance + ? WHERE id = ?',
-            (amount, user_id)
-        )
-    else:
-        conn.execute(
-            'INSERT INTO expenses (user_id, amount, category, description) VALUES (?, ?, ?, ?)',
-            (user_id, amount, category, description)
-        )
-        conn.execute(
-            'UPDATE users SET balance = balance - ? WHERE id = ?',
-            (amount, user_id)
-        )
-
-    conn.commit()
-    conn.close()
-
-    return jsonify({'success': True, 'message': 'Transaction added successfully'})
-@app.route('/get_expense/<int:expense_id>')
-def get_expense(expense_id):
-    conn = get_db_connection()
-    expense = conn.execute(
-        "SELECT amount, category, description FROM expenses WHERE id = ?",
-        (expense_id,)
-    ).fetchone()
-    conn.close()
-
-    return jsonify(dict(expense))
-@app.route('/edit_expense/<int:expense_id>', methods=['GET', 'POST'])
-
-#Added this edit method 
-def edit_expense(expense_id):
-    conn = get_db_connection()
-
-    # Fetch expense
-    expense = conn.execute(
-        "SELECT * FROM expenses WHERE id = ? AND user_id = ?",
-        (expense_id, session['user_id'])
-    ).fetchone()
-
-    if not expense:
-        conn.close()
-        return redirect('/all_records')
-
-    categories = [
-        "Foods & Drink", "Shopping", "Transportation",
-        "Housing", "Vehicle", "Entertainment",
-        "Investments", "Other"
-    ]
-
-    if request.method == 'POST':
-        new_amount = float(request.form['amount'])
-        new_category = request.form['category']
-        new_description = request.form['description']
-
-        old_amount = expense['amount']
-        diff = new_amount - old_amount
-
-        conn.execute(
-            """UPDATE expenses
-               SET amount = ?, category = ?, description = ?
-               WHERE id = ?""",
-            (new_amount, new_category, new_description, expense_id)
-        )
-
-        conn.execute(
-            "UPDATE users SET balance = balance - ? WHERE id = ?",
-            (diff, session['user_id'])
-        )
-
-        conn.commit()
-        conn.close()
-        return redirect('/all_records')
-
-    conn.close()
-    return render_template(
-        'edit_expense.html',
-        expense=expense,
-        categories=categories
-    )
-
-@app.route('/delete_expense/<int:expense_id>', methods=['POST'])
-def delete_expense(expense_id):
-    if 'user_id' not in session:
-        return redirect('/login')
-
-    conn = get_db_connection()
-
-    # Get amount before deleting
-    expense = conn.execute(
-        "SELECT amount FROM expenses WHERE id = ? AND user_id = ?",
-        (expense_id, session['user_id'])
-    ).fetchone()
-
-    if expense:
-        amount = expense['amount']
-
-        # Delete expense
-        conn.execute(
-            "DELETE FROM expenses WHERE id = ? AND user_id = ?",
-            (expense_id, session['user_id'])
-        )
-
-        # Update balance
-        conn.execute(
-            "UPDATE users SET balance = balance + ? WHERE id = ?",
-            (amount, session['user_id'])
-        )
-
-        conn.commit()
-
-    conn.close()
-    return redirect('/all_records')
-
-@app.route('/profile', methods=['GET', 'POST'])
-def profile():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-    
-    user_id = session['user_id']
-    conn = get_db_connection()
-    
-    if request.method == 'POST':
-        data = request.get_json()
-        conn.execute(
-            'UPDATE users SET username = ?, email = ?, phone = ?, currency = ? WHERE id = ?',
-            (data.get('username'), data.get('email'), data.get('phone'), 
-             data.get('currency'), user_id)
-        )
-        conn.commit()
-        session['username'] = data.get('username')
-    
-    user = conn.execute('SELECT * FROM users WHERE id = ?', (user_id,)).fetchone()
-    conn.close()
-    
-    return render_template('profile.html', user=user)
-
-@app.route('/all_records')
-def all_records():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-    
-    user_id = session['user_id']
-    category_filter = request.args.get('category', '')
-    date_from = request.args.get('date_from', '')
-    date_to = request.args.get('date_to', '')
-    
-    conn = get_db_connection()
-    query = 'SELECT * FROM expenses WHERE user_id = ?'
-    params = [user_id]
-    
-    if category_filter:
-        query += ' AND category = ?'
-        params.append(category_filter)
-    
-    if date_from:
-        query += ' AND date >= ?'
-        params.append(date_from)
-    
-    if date_to:
-        query += ' AND date <= ?'
-        params.append(date_to + ' 23:59:59')
-    
-    query += ' ORDER BY date DESC'
-    expenses = conn.execute(query, params).fetchall()
-    conn.close()
-    
-    return render_template('all_records.html', expenses=expenses)
-
-@app.route('/statistics')
-def statistics():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-    
-    return render_template('statistics.html')
-
-@app.route('/api/expense_chart')
-def expense_chart():
-    if 'user_id' not in session:
-        return jsonify({'error': 'Not logged in'})
-    
-    user_id = session['user_id']
-    period = request.args.get('period', 'monthly')
-    
-    conn = get_db_connection()
-    
-    if period == 'monthly':
-        expenses = conn.execute(
-            '''SELECT category, SUM(amount) as total 
-               FROM expenses 
-               WHERE user_id = ? AND date >= datetime('now', '-30 days')
-               GROUP BY category''',
-            (user_id,)
-        ).fetchall()
-    elif period == 'yearly':
-        expenses = conn.execute(
-            '''SELECT category, SUM(amount) as total 
-               FROM expenses 
-               WHERE user_id = ? AND date >= datetime('now', '-365 days')
-               GROUP BY category''',
-            (user_id,)
-        ).fetchall()
-    else:  # daily
-        expenses = conn.execute(
-            '''SELECT category, SUM(amount) as total 
-               FROM expenses 
-               WHERE user_id = ? AND date >= datetime('now', '-7 days')
-               GROUP BY category''',
-            (user_id,)
-        ).fetchall()
-    
-    conn.close()
-    
-    if not expenses:
-        # Return empty chart
-        plt.figure(figsize=(8, 8))
-        plt.text(0.5, 0.5, 'No expenses yet', ha='center', va='center', fontsize=14)
-        plt.axis('off')
-        img = io.BytesIO()
-        plt.savefig(img, format='png')
-        img.seek(0)
-        plt.close()
-        return send_file(img, mimetype='image/png')
-    
-    categories = [e['category'] for e in expenses]
-    amounts = [e['total'] for e in expenses]
-    
-    # Create pie chart
-    plt.figure(figsize=(8, 8))
-    plt.pie(amounts, labels=categories, autopct='%1.1f%%', startangle=90)
-    plt.title(f'Expenses by Category ({period.capitalize()})')
-    
-    img = io.BytesIO()
-    plt.savefig(img, format='png')
-    img.seek(0)
-    plt.close()
-    
-    return send_file(img, mimetype='image/png')
-
-@app.route('/api/balance_chart')
-def balance_chart():
-    if 'user_id' not in session:
-        return jsonify({'error': 'Not logged in'})
-    
-    user_id = session['user_id']
-    conn = get_db_connection()
-    
-    # Get balance history (last 30 days)
-    expenses = conn.execute(
-        '''SELECT date, amount FROM expenses 
-           WHERE user_id = ? AND date >= datetime('now', '-30 days')
-           ORDER BY date ASC''',
-        (user_id,)
-    ).fetchall()
-    
-    user = conn.execute('SELECT balance FROM users WHERE id = ?', (user_id,)).fetchone()
-    current_balance = user['balance']
-    conn.close()
-    
-    # Calculate running balance
-    dates = []
-    balances = []
-    running_balance = current_balance
-    
-    for expense in reversed(expenses):
-        running_balance += expense['amount']  # Add back since it was deducted
-        try:
-            # Try parsing the date - handle different formats
-            date_str = expense['date']
-            if isinstance(date_str, str):
-                # Try different date formats
-                try:
-                    date_obj = datetime.strptime(date_str, '%Y-%m-%d %H:%M:%S')
-                except ValueError:
-                    try:
-                        date_obj = datetime.strptime(date_str, '%Y-%m-%d')
-                    except ValueError:
-                        date_obj = datetime.fromisoformat(date_str.replace('Z', '+00:00'))
-            else:
-                date_obj = datetime.fromtimestamp(date_str)
-            dates.append(date_obj)
-            balances.append(running_balance)
-        except Exception as e:
-            # Skip invalid dates
-            continue
-    
-    if dates:
-        dates.append(datetime.now())
-        balances.append(current_balance)
-    
-    # Create area chart
-    plt.figure(figsize=(10, 6))
-    if dates and len(dates) > 1:
-        plt.fill_between(dates, balances, alpha=0.3)
-        plt.plot(dates, balances, linewidth=2)
-    elif dates and len(dates) == 1:
-        # Only one point, show as horizontal line
-        plt.axhline(y=current_balance, color='blue', linewidth=2, label='Balance')
-        plt.text(0.5, 0.5, f'Current Balance: {current_balance:.2f}', 
-                transform=plt.gca().transAxes, ha='center', va='center', fontsize=12)
-    else:
-        # No expenses, show current balance
-        plt.text(0.5, 0.5, f'No transactions yet\nCurrent Balance: {current_balance:.2f}', 
-                transform=plt.gca().transAxes, ha='center', va='center', fontsize=12)
-    plt.title('Balance Trend (Last 30 Days)')
-    plt.xlabel('Date')
-    plt.ylabel('Balance')
-    if dates and len(dates) > 1:
-        plt.xticks(rotation=45)
-    plt.grid(True, alpha=0.3)
-    plt.tight_layout()
-    
-    img = io.BytesIO()
-    plt.savefig(img, format='png')
-    img.seek(0)
-    plt.close()
-    
-    return send_file(img, mimetype='image/png')
-
-@app.route('/api/home_pie_chart')
-def home_pie_chart():
-    if 'user_id' not in session:
-        return jsonify({'error': 'Not logged in'})
-    
-    user_id = session['user_id']
-    conn = get_db_connection()
-    
-    expenses = conn.execute(
-        '''SELECT category, SUM(amount) as total 
-           FROM expenses 
-           WHERE user_id = ? AND date >= datetime('now', '-30 days')
-           GROUP BY category''',
-        (user_id,)
-    ).fetchall()
-    conn.close()
-    
-    if not expenses:
-        # Return empty chart
-        plt.figure(figsize=(6, 6))
-        plt.text(0.5, 0.5, 'No expenses yet', ha='center', va='center')
-        plt.axis('off')
-        img = io.BytesIO()
-        plt.savefig(img, format='png')
-        img.seek(0)
-        plt.close()
-        return send_file(img, mimetype='image/png')
-    
-    categories = [e['category'] for e in expenses]
-    amounts = [e['total'] for e in expenses]
-    
-    plt.figure(figsize=(6, 6))
-    plt.pie(amounts, labels=categories, autopct='%1.1f%%', startangle=90)
-    plt.title('Last Month Expenses')
-    
-    img = io.BytesIO()
-    plt.savefig(img, format='png')
-    img.seek(0)
-    plt.close()
-    
-    return send_file(img, mimetype='image/png')
-
-@app.route('/planned_payments', methods=['GET', 'POST'])
-def planned_payments():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-    
-    user_id = session['user_id']
-    conn = get_db_connection()
-    
-    if request.method == 'POST':
-        data = request.get_json()
-        conn.execute('''
-            INSERT INTO planned_payments (user_id, title, amount, payment_date, category, recurring)
-            VALUES (?, ?, ?, ?, ?, ?)
-        ''', (user_id, data['title'], data['amount'], data['payment_date'], 
-              data['category'], data['recurring']))
-        conn.commit()
-        conn.close()
-        return jsonify({'success': True, 'message': 'Payment added successfully'})
-    
-    payments = conn.execute('''
-        SELECT * FROM planned_payments 
-        WHERE user_id = ? 
-        ORDER BY payment_date ASC
-    ''', (user_id,)).fetchall()
-    conn.close()
-    
-    return render_template('planned_payments.html', payments=payments, now=datetime.now())
-
-@app.route('/edit_planned_payment/<int:payment_id>', methods=['POST'])
-def edit_planned_payment(payment_id):
-    if 'user_id' not in session:
-        return jsonify({'success': False, 'message': 'Unauthorized'}), 401
-    
-    user_id = session['user_id']
-    conn = get_db_connection()
-    
-    data = request.get_json()
-    conn.execute('''
-        UPDATE planned_payments 
-        SET title = ?, amount = ?, payment_date = ?, category = ?, recurring = ?
-        WHERE id = ? AND user_id = ?
-    ''', (data['title'], data['amount'], data['payment_date'], 
-          data['category'], data['recurring'], payment_id, user_id))
-    
-    conn.commit()
-    conn.close()
-    return jsonify({'success': True, 'message': 'Payment updated successfully'})
-
-@app.route('/delete_planned_payment/<int:payment_id>', methods=['POST'])
-def delete_planned_payment(payment_id):
-    if 'user_id' not in session:
-        return jsonify({'success': False, 'message': 'Unauthorized'}), 401
-    
-    user_id = session['user_id']
-    conn = get_db_connection()
-    
-    conn.execute('DELETE FROM planned_payments WHERE id = ? AND user_id = ?', 
-                (payment_id, user_id))
-    conn.commit()
-    conn.close()
-    
-    return jsonify({'success': True, 'message': 'Payment deleted successfully'})
-
-
-def check_payment_reminders():
-    conn = get_db_connection()
-
-    tomorrow = (datetime.now() + timedelta(days=1)).strftime('%Y-%m-%d')
-
-    payments =conn.execute(
-        '''
-        SELECT planned_payments.*, users.email
-        FROM planned_payments
-        JOIN users ON planned_payments.user_id = users.id
-        WHERE payment_date = ? AND reminder_sent = 0
-        ''',
-        (tomorrow,)
-    ).fetchall()
-
-    for p in payments:
-        send_payment_email(
-            p['email'],
-            p['title'],
-            p['amount'],
-            p['payment_date']
-        )
-
-        conn.execute(
-            "UPDATE planned_payments SET reminder_sent = 1 WHERE id = ?",
-            (p['id'],)
-        )
-
-    conn.commit()
-    conn.close()
-
-
-def send_payment_email(email, title, amount, date):
-    try:
-        msg = Message(
-            subject=f"Reminder: {title} due tomorrow",
-            sender=app.config['MAIL_USERNAME'],
-            recipients=[email]
-        )
-
-        msg.html = render_template(
-            "payment_reminder_email.html",
-            title=title,
-            amount=amount,
-            date=date
-        )
-
-        mail.send(msg)
-        print("Reminder email sent to", email)
-
-    except Exception as e:
-        print("Email error:", e)
-
-#temparory testing
-@app.route("/test_email")
-def test_email():
-    send_payment_email("hetmewada01@gmail.com", "Test", 100, "Tomorrow")
-    return "Email sent"
-
-
-@app.route('/budget', methods=['GET', 'POST'])
-def budget():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-    
-    user_id = session['user_id']
-    conn = get_db_connection()
-    
-    if request.method == 'POST':
-        data = request.get_json()
-        month = int(data.get('month'))
-        year = int(data.get('year'))
-        amount = float(data.get('amount'))
-        
-        conn.execute(
-            '''INSERT OR REPLACE INTO budget (user_id, month, year, amount)
-               VALUES (?, ?, ?, ?)''',
-            (user_id, month, year, amount)
-        )
-        conn.commit()
-        conn.close()
-        return jsonify({'success': True, 'message': 'Budget set successfully'})
-    
-    # Get current month budget
-    now = datetime.now()
-    budget = conn.execute(
-        'SELECT * FROM budget WHERE user_id = ? AND month = ? AND year = ?',
-        (user_id, now.month, now.year)
-    ).fetchone()
-    
-    # Get current month expenses
-    expenses = conn.execute(
-        '''SELECT SUM(amount) as total FROM expenses 
-           WHERE user_id = ? AND strftime("%m", date) = ? AND strftime("%Y", date) = ?''',
-        (user_id, f'{now.month:02d}', str(now.year))
-    ).fetchone()
-    
-    spent = expenses['total'] if expenses['total'] else 0
-    conn.close()
-    
-    return render_template('budget.html', budget=budget, spent=spent, current_month=now.month, current_year=now.year)
-
-@app.route('/settings', methods=['GET', 'POST'])
-def settings():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-    
-    user_id = session['user_id']
-    conn = get_db_connection()
-    
-    if request.method == 'POST':
-        data = request.get_json()
-        action = data.get('action')
-        
-        if action == 'toggle_theme':
-            user = conn.execute('SELECT theme FROM users WHERE id = ?', (user_id,)).fetchone()
-            new_theme = 'dark' if (user['theme'] or 'light') == 'light' else 'light'
-            conn.execute('UPDATE users SET theme = ? WHERE id = ?', (new_theme, user_id))
-            conn.commit()
-            conn.close()
-            session['theme'] = new_theme
-            return jsonify({'success': True, 'theme': new_theme})
-        
-        elif action == 'delete_expenses':
-            conn.execute('DELETE FROM expenses WHERE user_id = ?', (user_id,))
-            conn.execute('UPDATE users SET balance = 0 WHERE id = ?', (user_id,))
-            conn.commit()
-            conn.close()
-            return jsonify({'success': True, 'message': 'All expense data deleted'})
-        
-        elif action == 'delete_profile':
-            conn.execute('DELETE FROM expenses WHERE user_id = ?', (user_id,))
-            conn.execute('DELETE FROM planned_payments WHERE user_id = ?', (user_id,))
-            conn.execute('DELETE FROM budget WHERE user_id = ?', (user_id,))
-            conn.execute('DELETE FROM users WHERE id = ?', (user_id,))
-            conn.commit()
-            conn.close()
-            session.clear()
-            return jsonify({'success': True, 'message': 'Profile deleted'})
-    
-    user = conn.execute('SELECT * FROM users WHERE id = ?', (user_id,)).fetchone()
-    conn.close()
-    
-    return render_template('settings.html', user=user)
-
-@app.route('/export_statistics')
-def export_statistics():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-    
-    user_id = session['user_id']
-    format_type = request.args.get('format', 'pdf')
-    period = request.args.get('period', 'monthly')
-    
-    conn = get_db_connection()
-    
-    if period == 'monthly':
-        expenses = conn.execute(
-            '''SELECT category, SUM(amount) as total 
-               FROM expenses 
-               WHERE user_id = ? AND date >= datetime('now', '-30 days')
-               GROUP BY category''',
-            (user_id,)
-        ).fetchall()
-        title = 'Monthly Expenses'
-    elif period == 'yearly':
-        expenses = conn.execute(
-            '''SELECT category, SUM(amount) as total 
-               FROM expenses 
-               WHERE user_id = ? AND date >= datetime('now', '-365 days')
-               GROUP BY category''',
-            (user_id,)
-        ).fetchall()
-        title = 'Yearly Expenses'
-    else:
-        expenses = conn.execute(
-            '''SELECT category, SUM(amount) as total 
-               FROM expenses 
-               WHERE user_id = ? AND date >= datetime('now', '-7 days')
-               GROUP BY category''',
-            (user_id,)
-        ).fetchall()
-        title = 'Weekly Expenses'
-    
-    conn.close()
-    
-    categories = [e['category'] for e in expenses]
-    amounts = [e['total'] for e in expenses]
-    
-    if format_type == 'pdf':
-        # Create PDF with bar chart
-        img = io.BytesIO()
-        with PdfPages(img) as pdf:
-            fig, ax = plt.subplots(figsize=(10, 6))
-            if categories:
-                ax.bar(categories, amounts)
-                ax.set_title(title)
-                ax.set_xlabel('Category')
-                ax.set_ylabel('Amount')
-                plt.xticks(rotation=45)
-                plt.tight_layout()
-            pdf.savefig(fig)
-            plt.close(fig)
-        img.seek(0)
-        return send_file(img, mimetype='application/pdf', as_attachment=True, 
-                        download_name=f'expenses_{period}.pdf')
-    else:
-        # Create JPG
-        plt.figure(figsize=(10, 6))
-        if categories:
-            plt.bar(categories, amounts)
-            plt.title(title)
-            plt.xlabel('Category')
-            plt.ylabel('Amount')
-            plt.xticks(rotation=45)
-            plt.tight_layout()
-        img = io.BytesIO()
-        plt.savefig(img, format='jpg', dpi=150)
-        img.seek(0)
-        plt.close()
-        return send_file(img, mimetype='image/jpeg', as_attachment=True, 
-                        download_name=f'expenses_{period}.jpg')
-def send_payment_reminder_console(email, title, amount, date):
-    print("\n============================")
-    print("📧 REMINDER EMAIL (TEST MODE)")
-    print(f"To: {email}")
-    print(f"Payment: {title}")
-    print(f"Amount: {amount}")
-    print(f"Date: {date}")
-    print("Reminder: Payment due tomorrow!")
-    print("============================\n")
-
-def run_scheduler():
-    with app.app_context():   # ⭐ THIS LINE FIXES EVERYTHING
-        while True:
-            schedule.run_pending()
-            time.sleep(30)
-schedule.every(1).minutes.do(check_payment_reminders)
-
-threading.Thread(target=run_scheduler, daemon=True).start()
-
-if __name__ == "__main__":
-    app.run(debug=True, use_reloader=False)
+    // Set default date
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    document.getElementById('payment_date').value = tomorrow.toISOString().split('T')[0];
+});
+</script>
+{% endblock %}
