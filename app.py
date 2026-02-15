@@ -414,8 +414,30 @@ def all_records():
 def statistics():
     if 'user_id' not in session:
         return redirect(url_for('login'))
-    
-    return render_template('statistics.html')
+
+    user_id = session['user_id']
+    conn = get_db_connection()
+
+    # 🔹 Get most spent category in last 30 days
+    top_category = conn.execute(
+        '''
+        SELECT category, SUM(amount) as total
+        FROM expenses
+        WHERE user_id = ?
+        AND date >= datetime('now','-30 days')
+        GROUP BY category
+        ORDER BY total DESC
+        LIMIT 1
+        ''',
+        (user_id,)
+    ).fetchone()
+
+    conn.close()
+
+    return render_template(
+        'statistics.html',
+        top_category=top_category
+    )
 
 @app.route('/api/expense_chart')
 def expense_chart():
@@ -466,18 +488,27 @@ def expense_chart():
         return send_file(img, mimetype='image/png')
     
     categories = [e['category'] for e in expenses]
-    amounts = [e['total'] for e in expenses]
-    
-    # Create pie chart
-    plt.figure(figsize=(8, 8))
-    plt.pie(amounts, labels=categories, autopct='%1.1f%%', startangle=90)
+    amounts = [e['total'] for e in expenses]   # or e['amount'] if needed
+
+    plt.figure(figsize=(10,6))
+
+    if len(categories) == 0:
+        # show empty message chart
+        plt.text(0.5, 0.5, "No expense data", ha='center', va='center')
+    else:
+        plt.bar(categories, amounts, color='#4f46e5')
+
     plt.title(f'Expenses by Category ({period.capitalize()})')
-    
+    plt.xlabel("Category")
+    plt.ylabel("Amount (₹)")
+    plt.xticks(rotation=30)
+    plt.tight_layout()
+
     img = io.BytesIO()
     plt.savefig(img, format='png')
     img.seek(0)
     plt.close()
-    
+        
     return send_file(img, mimetype='image/png')
 
 @app.route('/api/balance_chart')
