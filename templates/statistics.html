@@ -77,6 +77,32 @@
             </div>
         </div>
 
+        <!-- MOST SPENT CATEGORY CARD -->
+<div class="row mb-5">
+    <div class="col-12">
+        <div class="card text-center">
+            <div class="card-body">
+
+                <h4 class="mb-3">Most Spent Category (Last 30 Days)</h4>
+
+                {% if top_category %}
+                    <h2 class="text-primary">
+                        {{ top_category.category }}
+                    </h2>
+
+                    <p class="fs-5">
+                        ₹{{ "%.2f"|format(top_category.total) }} spent
+                    </p>
+                {% else %}
+                    <p class="text-muted">No expenses yet</p>
+                {% endif %}
+
+            </div>
+        </div>
+    </div>
+</div>
+
+
         <!-- 3. Export Section - PROFESSIONAL SMALL BUTTONS -->
         <div class="row">
             <div class="col-12">
